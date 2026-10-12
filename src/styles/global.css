@@ -166,7 +166,8 @@
   .prose-page li {
     @apply mb-1.5;
   }
-  .prose-page a {
+  /* Plain links only: links styled as buttons keep their own colors. */
+  .prose-page a:not(.btn-primary, .btn-secondary, .btn-danger) {
     @apply link;
   }
   .prose-page code {
