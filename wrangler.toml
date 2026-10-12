@@ -1,0 +1,38 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "vanishnote"
+# Custom entry: wraps Astro's fetch handler and adds the cron `scheduled` handler.
+main = "./src/worker.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_als"]
+
+# Workers Logs record every request URL, and our URLs contain note IDs.
+# Keep invocation logging off so note IDs never land in a log store.
+[observability]
+enabled = false
+
+[vars]
+APP_URL = "http://localhost:4321"
+# Must be an address on a domain verified in Resend.
+EMAIL_FROM = "Vanishnote <notify@example.com>"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vanishnote"
+# Replace with the id printed by `wrangler d1 create vanishnote`.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Hourly cleanup of expired notes.
+[triggers]
+crons = ["0 * * * *"]
+
+# Per-IP rate limits (Workers Rate Limiting binding). `period` must be 10 or 60.
+[[ratelimits]]
+name = "CREATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
+
+[[ratelimits]]
+name = "READ_LIMITER"
+namespace_id = "1002"
+simple = { limit = 30, period = 60 }
