@@ -1,0 +1,40 @@
+---
+import Logo from './Logo.astro';
+
+const links = [
+  { href: '/how-it-works', label: 'How it works' },
+  { href: '/security', label: 'Security' },
+  { href: '/faq', label: 'FAQ' },
+  { href: '/blog', label: 'Blog' },
+];
+const current = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<header class="border-b border-line/70">
+  <div class="container-page flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-4">
+    <a href="/" class="flex items-center gap-2 rounded-lg text-ink" aria-label="Vanishnote home">
+      <Logo class="text-accent" />
+      <span class="text-lg font-bold tracking-tight">vanish<span class="text-muted">note</span></span>
+    </a>
+    <nav aria-label="Main">
+      <ul class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-medium">
+        {
+          links.map(({ href, label }) => (
+            <li>
+              <a
+                href={href}
+                class:list={[
+                  'rounded py-1 hover:text-accent',
+                  current === href || current.startsWith(`${href}/`) ? 'text-accent' : 'text-muted',
+                ]}
+                aria-current={current === href ? 'page' : undefined}
+              >
+                {label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</header>

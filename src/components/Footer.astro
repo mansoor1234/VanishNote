@@ -1,0 +1,27 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-16 border-t border-line/70 py-10 text-sm text-muted">
+  <div class="container-page flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+    <div class="max-w-sm">
+      <p class="font-semibold text-ink">Vanishnote</p>
+      <p class="mt-1">
+        Notes are encrypted in your browser. We store scrambled data we cannot read, then delete it.
+      </p>
+    </div>
+    <nav aria-label="Footer">
+      <ul class="grid grid-cols-2 gap-x-10 gap-y-2">
+        <li><a class="hover:text-accent" href="/how-it-works">How it works</a></li>
+        <li><a class="hover:text-accent" href="/privacy">Privacy</a></li>
+        <li><a class="hover:text-accent" href="/security">Security</a></li>
+        <li><a class="hover:text-accent" href="/terms">Terms</a></li>
+        <li><a class="hover:text-accent" href="/faq">FAQ</a></li>
+        <li><a class="hover:text-accent" href="/blog">Blog</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="container-page mt-8">
+    <p>&copy; {year} Vanishnote. No ads, no trackers, no cookies.</p>
+  </div>
+</footer>

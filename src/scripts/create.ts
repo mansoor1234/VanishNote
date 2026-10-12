@@ -1,0 +1,107 @@
+import { encryptNote, utf8ByteLength } from '../lib/crypto';
+import { MAX_NOTE_BYTES, type ExpiryOption } from '../lib/limits';
+import { createNote } from './api-client';
+import { $, formatBytes, initCopyButtons, showState } from './ui';
+
+export function initPasswordToggles(root: ParentNode = document): void {
+  for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-toggle-password]')) {
+    const input = document.getElementById(button.dataset['togglePassword'] ?? '') as HTMLInputElement | null;
+    if (!input) continue;
+    button.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.textContent = show ? 'Hide' : 'Show';
+      button.setAttribute('aria-pressed', String(show));
+    });
+  }
+}
+
+export function initCreateForm(): void {
+  const root = $('#composer');
+  const form = $<HTMLFormElement>('#create-form');
+  const text = $<HTMLTextAreaElement>('#note-text');
+  const size = $('[data-size]');
+  const password = $<HTMLInputElement>('#note-password');
+  const notifyToggle = $<HTMLInputElement>('#notify-toggle');
+  const notifyFields = $('#notify-fields');
+  const notifyEmail = $<HTMLInputElement>('#notify-email');
+  const errorBox = $('#create-error');
+  const submit = $<HTMLButtonElement>('#create-submit');
+
+  initCopyButtons(root);
+  initPasswordToggles(root);
+
+  const showError = (message: string, focus?: HTMLElement) => {
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+    focus?.focus();
+  };
+
+  text.addEventListener('input', () => {
+    const bytes = utf8ByteLength(text.value);
+    size.textContent = formatBytes(bytes);
+    size.classList.toggle('text-danger', bytes > MAX_NOTE_BYTES);
+    text.setAttribute('aria-invalid', String(bytes > MAX_NOTE_BYTES));
+  });
+
+  notifyToggle.addEventListener('change', () => {
+    notifyFields.hidden = !notifyToggle.checked;
+    notifyToggle.setAttribute('aria-expanded', String(notifyToggle.checked));
+    if (notifyToggle.checked) notifyEmail.focus();
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorBox.hidden = true;
+
+    const plaintext = text.value;
+    if (plaintext.trim() === '') return showError('Write something first.', text);
+    if (utf8ByteLength(plaintext) > MAX_NOTE_BYTES) {
+      return showError(`Your note is too long. The limit is ${MAX_NOTE_BYTES / 1024} KB.`, text);
+    }
+    const email = notifyToggle.checked ? notifyEmail.value.trim() : '';
+    if (notifyToggle.checked && !notifyEmail.checkValidity()) {
+      return showError('Enter a valid email address, or turn off read notifications.', notifyEmail);
+    }
+    if (notifyToggle.checked && email === '') {
+      return showError('Enter your email address, or turn off read notifications.', notifyEmail);
+    }
+
+    submit.disabled = true;
+    submit.textContent = password.value ? 'Encrypting (this takes a moment)…' : 'Encrypting…';
+    try {
+      const { payload, linkKey } = await encryptNote(plaintext, password.value || undefined);
+      const data = new FormData(form);
+      const result = await createNote(payload, {
+        expiresIn: data.get('expiresIn') as ExpiryOption,
+        maxReads: Number(data.get('maxReads')),
+        ...(email ? { notifyEmail: email } : {}),
+      });
+      if (!result.ok) return showError(result.message);
+
+      const { id, deleteToken, expiresAt } = result.data;
+      $<HTMLInputElement>('#share-link').value = `${location.origin}/n/${id}#${linkKey}`;
+      $<HTMLInputElement>('#destroy-link').value = `${location.origin}/d/${id}#${deleteToken}`;
+      $('[data-expiry]').textContent = `If nobody opens it, it will be deleted on ${new Date(expiresAt).toLocaleString()}.`;
+      for (const tip of root.querySelectorAll<HTMLElement>('[data-password-tip]')) tip.hidden = !password.value;
+
+      // Drop the plaintext and password from the page now that they're no longer needed.
+      form.reset();
+      size.textContent = formatBytes(0);
+      notifyFields.hidden = true;
+      showState(root, 'result');
+    } catch {
+      showError('Encryption failed in this browser. Please try a current version of Chrome, Firefox, Safari or Edge.');
+    } finally {
+      submit.disabled = false;
+      submit.textContent = 'Create secure link';
+    }
+  });
+
+  $('#create-another').addEventListener('click', () => {
+    $<HTMLInputElement>('#share-link').value = '';
+    $<HTMLInputElement>('#destroy-link').value = '';
+    showState(root, 'form');
+    text.focus();
+  });
+}

@@ -1,0 +1,99 @@
+---
+/**
+ * GET never reads or destroys the note: it only renders this shell. That keeps link-preview
+ * bots (chat apps, mail scanners) from burning notes. The note is consumed when the
+ * recipient presses "Reveal", which POSTs to /api/notes/:id/read.
+ */
+import Base from '../../layouts/Base.astro';
+import { NOT_FOUND_MESSAGE } from '../../server/http';
+
+export const prerender = false;
+---
+
+<Base
+  title="Someone sent you a private note"
+  description="This note is encrypted and will disappear after it's read."
+  privatePage
+>
+  <div class="container-page py-10 sm:py-16">
+    <section id="reveal" class="card mx-auto max-w-2xl" aria-live="polite">
+      <noscript>
+        <p class="notice-warn">
+          Vanishnote needs JavaScript to decrypt notes on your device. Please enable it and reload this page.
+        </p>
+      </noscript>
+
+      <div data-state="confirm">
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>You've received a private note</h1>
+        <p class="mt-3 text-muted" data-confirm-copy>
+          It will be permanently destroyed after you view it. Make sure you're somewhere private and ready to copy
+          anything you need.
+        </p>
+        <button id="reveal-button" type="button" class="btn-primary mt-6">Reveal note</button>
+      </div>
+
+      <div data-state="missing-key" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>This link is incomplete</h1>
+        <p class="mt-3 text-muted">
+          The part of the link after the <code class="rounded bg-surface-muted px-1">#</code> holds the decryption key,
+          and it's missing or damaged. Ask the sender to copy the full link again. The note has not been opened.
+        </p>
+      </div>
+
+      <div data-state="loading" hidden>
+        <p class="text-muted" role="status">Opening note…</p>
+      </div>
+
+      <div data-state="password" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>This note is password-protected</h1>
+        <p class="notice-warn mt-4">
+          The note has been retrieved and removed from our servers. It's held only in this tab now, so
+          <strong>don't close or reload it</strong> until you've unlocked it.
+        </p>
+        <form id="password-form" class="mt-5 space-y-3" novalidate>
+          <label for="reveal-password" class="field-label">Password</label>
+          <input id="reveal-password" type="password" class="input" autocomplete="off" required />
+          <p id="password-error" class="notice-danger" role="alert" hidden></p>
+          <button type="submit" id="unlock-button" class="btn-primary">Unlock note</button>
+        </form>
+      </div>
+
+      <div data-state="shown" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>Here's your note</h1>
+        <p class="mt-3 text-sm" data-reads-status></p>
+        <div
+          id="note-content"
+          class="mt-5 max-h-[60vh] overflow-auto rounded-xl border border-line bg-surface-muted p-4 font-mono text-[0.95rem] break-words whitespace-pre-wrap"
+          tabindex="0"
+          aria-label="Note contents"
+        >
+        </div>
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <button type="button" class="btn-primary" data-copy="note-content">Copy note</button>
+          <span class="sr-only" aria-live="polite" data-copy-status></span>
+          <a href="/" class="btn-secondary">Write your own note</a>
+        </div>
+      </div>
+
+      <div data-state="gone" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>{NOT_FOUND_MESSAGE}</h1>
+        <p class="mt-3 text-muted">
+          Notes are destroyed once they've been read or when they expire. If you weren't expecting that, let the sender
+          know: someone else may have opened it first.
+        </p>
+        <a href="/" class="btn-secondary mt-6">Write your own note</a>
+      </div>
+
+      <div data-state="error" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>Something went wrong</h1>
+        <p class="mt-3 text-muted" data-error-message></p>
+        <button type="button" class="btn-secondary mt-6" data-retry>Try again</button>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<script>
+  import { initReveal } from '../../scripts/reveal';
+  initReveal();
+</script>

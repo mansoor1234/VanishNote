@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+/*
+ * Vanishnote palette — "dusk": warm paper, deep ink, a calm twilight indigo accent.
+ * All text/background pairs below meet WCAG AA (most meet AAA).
+ */
+:root {
+  color-scheme: light dark;
+  --paper: #f6f5f1;
+  --surface: #ffffff;
+  --surface-muted: #efeee9;
+  --ink: #1b1d2a;
+  --muted: #545869;
+  --line: #d9d8e0;
+  --accent: #4338ca;
+  --accent-strong: #3730a3;
+  --accent-ink: #ffffff;
+  --accent-soft: #eceafd;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --success: #05603a;
+  --success-soft: #e6f4ec;
+  --warn: #8a4b00;
+  --warn-soft: #fff4e0;
+  --focus: #4338ca;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f1018;
+    --surface: #171926;
+    --surface-muted: #1e2132;
+    --ink: #ecebf5;
+    --muted: #a6a9bf;
+    --line: #2d3045;
+    --accent: #a5b4fc;
+    --accent-strong: #c7d2fe;
+    --accent-ink: #11122a;
+    --accent-soft: #23264a;
+    --danger: #fca5a5;
+    --danger-soft: #3a1717;
+    --success: #86efac;
+    --success-soft: #11291c;
+    --warn: #fcd34d;
+    --warn-soft: #33270b;
+    --focus: #c7d2fe;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    @apply bg-paper text-ink antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply min-h-dvh font-sans leading-relaxed;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    @apply bg-accent-soft text-ink;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Composable bases (Tailwind v4 can only @apply utilities, not component classes). */
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+}
+@utility notice {
+  @apply rounded-xl border px-4 py-3 text-sm;
+}
+@utility link {
+  @apply font-medium text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent;
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-5xl px-4 sm:px-6;
+  }
+  .card {
+    @apply rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-accent-ink hover:bg-accent-strong;
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-ink hover:bg-surface-muted;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90;
+  }
+  .field-label {
+    @apply mb-1.5 block text-sm font-semibold;
+  }
+  .field-hint {
+    @apply mt-1.5 text-sm text-muted;
+  }
+  .input {
+    @apply block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-base text-ink placeholder:text-muted/80 focus-visible:border-accent;
+  }
+  .notice-warn {
+    @apply notice border-warn/40 bg-warn-soft text-ink;
+  }
+  .notice-danger {
+    @apply notice border-danger/40 bg-danger-soft text-ink;
+  }
+  .notice-success {
+    @apply notice border-success/40 bg-success-soft text-ink;
+  }
+  .prose-page {
+    @apply max-w-3xl;
+  }
+  .prose-page h2 {
+    @apply mt-10 mb-3 text-2xl font-bold tracking-tight;
+  }
+  .prose-page h3 {
+    @apply mt-6 mb-2 text-lg font-semibold;
+  }
+  .prose-page p,
+  .prose-page ul,
+  .prose-page ol {
+    @apply mb-4 text-ink/90;
+  }
+  .prose-page ul {
+    @apply list-disc pl-6;
+  }
+  .prose-page ol {
+    @apply list-decimal pl-6;
+  }
+  .prose-page li {
+    @apply mb-1.5;
+  }
+  .prose-page a {
+    @apply link;
+  }
+  .prose-page code {
+    @apply rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[0.9em];
+  }
+  .prose-page strong {
+    @apply font-semibold text-ink;
+  }
+}

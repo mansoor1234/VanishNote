@@ -1,0 +1,48 @@
+---
+/** Creator-only page to destroy a note early. The delete token lives in the URL fragment. */
+import Base from '../../layouts/Base.astro';
+import { NOT_FOUND_MESSAGE } from '../../server/http';
+
+export const prerender = false;
+---
+
+<Base title="Destroy a note" description="Destroy a Vanishnote before it's read." privatePage>
+  <div class="container-page py-10 sm:py-16">
+    <section id="destroy" class="card mx-auto max-w-2xl" aria-live="polite">
+      <div data-state="confirm">
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>Destroy this note?</h1>
+        <p class="mt-3 text-muted">
+          The note will be deleted immediately and its link will stop working. This can't be undone.
+        </p>
+        <button id="destroy-button" type="button" class="btn-danger mt-6">Destroy note now</button>
+      </div>
+      <div data-state="missing-key" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>This destroy link is incomplete</h1>
+        <p class="mt-3 text-muted">The part after the <code>#</code> is missing or damaged. Copy the full destroy link again.</p>
+      </div>
+      <div data-state="loading" hidden>
+        <p class="text-muted" role="status">Destroying…</p>
+      </div>
+      <div data-state="done" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>The note has been destroyed</h1>
+        <p class="mt-3 text-muted">Its link no longer works, and any read-notification email address was deleted with it.</p>
+        <a href="/" class="btn-secondary mt-6">Write a new note</a>
+      </div>
+      <div data-state="gone" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>{NOT_FOUND_MESSAGE}</h1>
+        <p class="mt-3 text-muted">There's nothing left to destroy.</p>
+        <a href="/" class="btn-secondary mt-6">Write a new note</a>
+      </div>
+      <div data-state="error" hidden>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>Something went wrong</h1>
+        <p class="mt-3 text-muted" data-error-message></p>
+        <button type="button" class="btn-secondary mt-6" data-retry>Try again</button>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<script>
+  import { initDestroy } from '../../scripts/destroy';
+  initDestroy();
+</script>

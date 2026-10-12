@@ -1,0 +1,138 @@
+---
+import { MAX_NOTE_BYTES, MAX_READS } from '../lib/limits';
+
+const reads = Array.from({ length: MAX_READS }, (_, i) => i + 1);
+---
+
+<section id="composer" class="card" aria-labelledby="composer-title">
+  <div data-state="form">
+    <h2 id="composer-title" class="text-xl font-bold tracking-tight">Write a note</h2>
+    <p class="mt-1 text-sm text-muted">Encrypted on this device before it's sent. We never see the text.</p>
+
+    <form id="create-form" class="mt-5 space-y-5" novalidate>
+      <div>
+        <label for="note-text" class="field-label">Your note</label>
+        <textarea
+          id="note-text"
+          name="note"
+          rows="7"
+          required
+          class="input min-h-40 resize-y font-mono text-[0.95rem]"
+          placeholder="Passwords, keys, private details…"
+          aria-describedby="note-size"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"></textarea>
+        <p id="note-size" class="field-hint" aria-live="polite">
+          <span data-size>0 B</span> of {MAX_NOTE_BYTES / 1024} KB
+        </p>
+      </div>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label for="expires-in" class="field-label">Delete if unread after</label>
+          <select id="expires-in" name="expiresIn" class="input">
+            <option value="1h">1 hour</option>
+            <option value="1d">1 day</option>
+            <option value="7d" selected>7 days</option>
+            <option value="30d">30 days</option>
+          </select>
+        </div>
+        <div>
+          <label for="max-reads" class="field-label">Destroy after</label>
+          <select id="max-reads" name="maxReads" class="input">
+            {reads.map((n) => <option value={n} selected={n === 1}>{n === 1 ? '1 view' : `${n} views`}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="note-password" class="field-label">Password <span class="font-normal text-muted">(optional)</span></label>
+        <div class="flex gap-2">
+          <input
+            id="note-password"
+            name="password"
+            type="password"
+            class="input"
+            autocomplete="new-password"
+            aria-describedby="password-hint"
+          />
+          <button type="button" class="btn-secondary shrink-0 px-3" data-toggle-password="note-password" aria-pressed="false">
+            Show
+          </button>
+        </div>
+        <p id="password-hint" class="field-hint">
+          Adds a second lock. Send the password separately from the link. It can't be recovered if it's lost.
+        </p>
+      </div>
+
+      <div>
+        <div class="flex items-start gap-3">
+          <input id="notify-toggle" type="checkbox" class="mt-1 size-5 shrink-0 accent-accent" aria-controls="notify-fields" aria-expanded="false" />
+          <label for="notify-toggle" class="text-sm">
+            <span class="font-semibold">Email me when it's read</span>
+            <span class="block text-muted">We keep your address only until the note is destroyed.</span>
+          </label>
+        </div>
+        <div id="notify-fields" class="mt-3" hidden>
+          <label for="notify-email" class="field-label">Your email</label>
+          <input id="notify-email" name="notifyEmail" type="email" class="input" autocomplete="email" inputmode="email" />
+        </div>
+      </div>
+
+      <p id="create-error" class="notice-danger" role="alert" hidden></p>
+
+      <button id="create-submit" type="submit" class="btn-primary w-full sm:w-auto">Create secure link</button>
+    </form>
+  </div>
+
+  <div data-state="result" hidden>
+    <h2 class="text-xl font-bold tracking-tight" tabindex="-1" data-focus>Your link is ready</h2>
+    <p class="notice-warn mt-4">
+      <strong>Copy it now.</strong> This is the only time it will be shown. The key is part of the link and was never
+      sent to us, so we can't show it again.
+    </p>
+
+    <div class="mt-5">
+      <label for="share-link" class="field-label">Share this link</label>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <input id="share-link" type="text" readonly class="input font-mono text-sm" />
+        <button type="button" class="btn-primary shrink-0" data-copy="share-link">Copy link</button>
+        <span class="sr-only" aria-live="polite" data-copy-status></span>
+      </div>
+      <p class="field-hint" data-expiry></p>
+    </div>
+
+    <div class="mt-6 rounded-xl bg-surface-muted p-4 text-sm">
+      <p class="font-semibold">Sharing safely</p>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-ink/90">
+        <li data-password-tip hidden>
+          Send the password through a <strong>different channel</strong> than the link, for example the link by email and the
+          password by phone or a different messaging app.
+        </li>
+        <li>Anyone who has the link{' '}<span data-password-tip hidden>and password</span> can open the note, so send it only to the person who needs it.</li>
+        <li>If the recipient says the note was already opened, someone else may have intercepted the link.</li>
+      </ul>
+    </div>
+
+    <details class="mt-6 rounded-xl border border-line p-4">
+      <summary class="cursor-pointer font-semibold">Changed your mind? Keep a destroy link</summary>
+      <p class="mt-2 text-sm text-muted">
+        Open this private link to destroy the note before it's read. Keep it to yourself.
+      </p>
+      <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+        <label for="destroy-link" class="sr-only">Destroy link</label>
+        <input id="destroy-link" type="text" readonly class="input font-mono text-sm" />
+        <button type="button" class="btn-secondary shrink-0" data-copy="destroy-link">Copy</button>
+        <span class="sr-only" aria-live="polite" data-copy-status></span>
+      </div>
+    </details>
+
+    <button id="create-another" type="button" class="btn-secondary mt-6">Write another note</button>
+  </div>
+</section>
+
+<script>
+  import { initCreateForm } from '../scripts/create';
+  initCreateForm();
+</script>
