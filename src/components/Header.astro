@@ -1,4 +1,5 @@
 ---
+import { cleanPath } from '../lib/site';
 import Logo from './Logo.astro';
 
 const links = [
@@ -7,7 +8,7 @@ const links = [
   { href: '/faq', label: 'FAQ' },
   { href: '/blog', label: 'Blog' },
 ];
-const current = Astro.url.pathname.replace(/\/$/, '');
+const current = cleanPath(Astro.url.pathname);
 ---
 
 <header class="border-b border-line/70">

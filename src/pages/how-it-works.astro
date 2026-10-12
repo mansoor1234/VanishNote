@@ -1,0 +1,73 @@
+---
+import Prose from '../layouts/Prose.astro';
+---
+
+<Prose
+  title="How it works"
+  description="How Vanishnote encrypts your note in the browser, keeps the key out of our reach, and deletes the note the moment it's read."
+  heading="How Vanishnote works"
+  lead="The short version: your browser locks the note, the key rides in the link, and we only ever hold the locked box until someone opens it."
+>
+  <h2>1. Your browser encrypts the note</h2>
+  <p>
+    When you press <strong>Create secure link</strong>, your browser generates a brand-new random 256-bit key and
+    encrypts your note with AES-256-GCM using the Web Crypto API built into every modern browser. No plugins, no
+    third-party libraries. The original text never leaves your device.
+  </p>
+
+  <h2>2. We store only the locked version</h2>
+  <p>
+    Your browser sends us the encrypted bytes plus the settings you chose: when it should expire and how many times it
+    can be opened. We save that, give it a random 128-bit ID, and send the ID back. We never receive the key.
+  </p>
+
+  <h2>3. The key travels in the link, after the #</h2>
+  <p>A Vanishnote link looks like this:</p>
+  <p><code>https://vanishnote.example/n/<em>note-id</em>#<em>key</em></code></p>
+  <p>
+    Everything after the <code>#</code> is called the fragment. Browsers keep the fragment to themselves: it's not
+    included when the page is requested from our server, so the key goes from your device to your recipient's without
+    passing through us.
+  </p>
+
+  <h2>4. Opening the link doesn't burn the note. Pressing Reveal does.</h2>
+  <p>
+    Messaging apps often fetch links to build a preview, and that would destroy a note before the real recipient sees it.
+    So opening a Vanishnote link only shows a "Reveal note" button. The note is retrieved, and deleted from our
+    database, only when a person presses it.
+  </p>
+  <p>
+    Deletion happens in the same database operation that hands over the note, so even if two people press Reveal at the
+    same instant, only one of them gets it.
+  </p>
+
+  <h2>5. The recipient's browser decrypts it</h2>
+  <p>
+    Your recipient's browser takes the key from the link and decrypts the note locally. If it was a single-view note,
+    it no longer exists anywhere except on their screen.
+  </p>
+
+  <h2>Optional extras</h2>
+  <ul>
+    <li>
+      <strong>Password.</strong> Your password is stretched with 600,000 rounds of PBKDF2 and combined with the link key.
+      Both are needed to decrypt. We never receive the password or anything that would let us check guesses.
+    </li>
+    <li>
+      <strong>Multiple views.</strong> Allow up to 10 views. Each Reveal uses one up; the last one deletes the note.
+    </li>
+    <li>
+      <strong>Expiry.</strong> Unread notes are deleted after 1 hour, 1 day, 7 days or 30 days.
+    </li>
+    <li>
+      <strong>Read notification.</strong> We can email you when the note is opened. Your address is stored only until the
+      note is deleted.
+    </li>
+    <li>
+      <strong>Destroy link.</strong> You get a private link to delete the note early if you change your mind.
+    </li>
+  </ul>
+
+  <p>Want the technical details and the limits of what this protects against? Read our <a href="/security">security model</a>.</p>
+  <p><a href="/" class="btn-primary no-underline">Write a note</a></p>
+</Prose>

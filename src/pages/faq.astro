@@ -1,0 +1,90 @@
+---
+import Prose from '../layouts/Prose.astro';
+import { CONTACT_EMAIL } from '../lib/site';
+
+const faqs: { q: string; a: string }[] = [
+  {
+    q: 'Can Vanishnote read my notes?',
+    a: 'No. Notes are encrypted in your browser before they are sent, and the key stays in the part of the link after the # sign, which browsers never send to our servers. We only store encrypted data we have no way to decrypt.',
+  },
+  {
+    q: 'What happens when someone opens the link?',
+    a: 'They see a page asking them to reveal the note. Nothing is retrieved or deleted until they press Reveal. Then the note is handed to their browser, deleted from our database in the same step, and decrypted on their device.',
+  },
+  {
+    q: 'Will a link preview in WhatsApp, Slack or iMessage destroy my note?',
+    a: 'No. Link previews only load the reveal page, which does not touch the note. A note is consumed only when a person presses the Reveal button.',
+  },
+  {
+    q: 'The recipient says the note was already read. What does that mean?',
+    a: 'Someone pressed Reveal before they did, or the note expired. We show the same message for both on purpose. If you did not open it yourself, assume someone else saw the link and change any secrets it contained.',
+  },
+  {
+    q: 'Can I get my link again if I lose it?',
+    a: 'No. The key in the link is generated in your browser and never sent to us, so we have nothing to give back. Copy the link before leaving the page.',
+  },
+  {
+    q: 'How does the password option work?',
+    a: 'Your password is combined with the key in the link, so both are needed to decrypt the note. Send the password through a different channel than the link. We never receive the password, so we cannot reset it.',
+  },
+  {
+    q: 'What if the recipient types the wrong password?',
+    a: 'They can try again as many times as they need without closing the tab. The encrypted note is held in their browser after Reveal, so a typo does not lose it. Closing the tab before unlocking does.',
+  },
+  {
+    q: 'How long do notes last?',
+    a: 'Until they are read the number of times you allowed (1 by default, up to 10), or until they expire after 1 hour, 1 day, 7 days or 30 days, whichever comes first. Expired notes can never be opened and are deleted within the hour.',
+  },
+  {
+    q: 'Can I delete a note before it is read?',
+    a: 'Yes. After creating a note you get a private destroy link. Opening it and confirming deletes the note immediately.',
+  },
+  {
+    q: 'What do you do with my email address for read notifications?',
+    a: 'We use it only to tell you when the note was opened, and delete it together with the note. The email says when the note was opened, not by whom, and contains nothing from the note.',
+  },
+  {
+    q: 'How big can a note be?',
+    a: 'Up to 50 KB of text, which is roughly 8,000 words. That is plenty for passwords, keys, configuration snippets and private messages.',
+  },
+  {
+    q: 'Do you use cookies or analytics?',
+    a: 'No cookies, no trackers, no third-party scripts. Our pages load nothing from anyone else.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+---
+
+<Prose
+  title="FAQ"
+  description="Answers about Vanishnote: how notes are encrypted, what link previews do, passwords, expiry, read notifications and more."
+  heading="Frequently asked questions"
+  jsonLd={jsonLd}
+>
+  <div class="space-y-3">
+    {
+      faqs.map(({ q, a }) => (
+        <details class="group rounded-xl border border-line bg-surface p-4 open:shadow-sm">
+          <summary class="cursor-pointer list-none font-semibold marker:hidden">
+            <span class="flex items-start justify-between gap-4">
+              {q}
+              <span aria-hidden="true" class="text-muted transition-transform group-open:rotate-45">+</span>
+            </span>
+          </summary>
+          <p class="mt-3 mb-0">{a}</p>
+        </details>
+      ))
+    }
+  </div>
+  <h2>Still have a question?</h2>
+  <p>Email us at <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
+</Prose>

@@ -1,0 +1,83 @@
+---
+import Prose from '../layouts/Prose.astro';
+import { SECURITY_EMAIL } from '../lib/site';
+---
+
+<Prose
+  title="Security model"
+  description="What Vanishnote's servers can and cannot see, the cryptography we use, and the threats it does and doesn't protect against."
+  heading="Security model"
+  lead="We'd rather tell you exactly what we can and can't protect against than make promises nobody can keep."
+>
+  <h2>What our servers see</h2>
+  <ul>
+    <li>The encrypted note (ciphertext), its 96-bit IV, and, for password-protected notes, a random salt.</li>
+    <li>Your settings: expiry time, number of views left, and whether a password was used.</li>
+    <li>Your email address, only if you asked to be notified, and only until the note is deleted.</li>
+    <li>A SHA-256 hash of your destroy token (not the token itself).</li>
+    <li>As with any website, your IP address while a request is being handled. We use it for rate limiting and don't store it.</li>
+  </ul>
+
+  <h2>What our servers never see</h2>
+  <ul>
+    <li>The text of your note.</li>
+    <li>The decryption key. It lives in the link's fragment (after the <code>#</code>), which browsers don't send to servers.</li>
+    <li>Your password, or any hash of it.</li>
+  </ul>
+
+  <h2>Cryptography</h2>
+  <ul>
+    <li><strong>Encryption:</strong> AES-256-GCM via the browser's built-in Web Crypto API, with a fresh random key and IV for every note.</li>
+    <li>
+      <strong>Passwords:</strong> PBKDF2-SHA256 with 600,000 iterations and a random 16-byte salt. The result is combined
+      with the link key using HKDF-SHA256, so decryption needs both the link <em>and</em> the password.
+    </li>
+    <li><strong>IDs and tokens:</strong> note IDs carry 128 bits of randomness; destroy tokens carry 256 bits.</li>
+  </ul>
+
+  <h2>Burn after reading, done properly</h2>
+  <p>
+    Fetching and deleting a note happen in a single atomic database operation. Two simultaneous attempts to read a
+    single-view note can't both succeed. We test this on every change. A note that is missing, already read, or
+    expired always produces the same message, so nobody can tell which happened.
+  </p>
+
+  <h2>Hardening</h2>
+  <ul>
+    <li>A strict Content Security Policy: only our own scripts run, and no inline scripts.</li>
+    <li><code>Referrer-Policy: no-referrer</code>, so note URLs are never passed to other sites.</li>
+    <li>Note pages and API responses are marked <code>no-store</code> and <code>noindex</code>.</li>
+    <li>No analytics, ads, third-party fonts or third-party scripts anywhere.</li>
+    <li>Decrypted text is displayed as plain text, never interpreted as HTML.</li>
+    <li>We don't log request bodies, full note IDs or email addresses, and request logging is switched off at the platform level.</li>
+  </ul>
+
+  <h2>What Vanishnote can't protect against</h2>
+  <ul>
+    <li>
+      <strong>Someone who gets the link first.</strong> Anyone holding the full link can open the note. Add a password and
+      send it separately to guard against an intercepted link.
+    </li>
+    <li>
+      <strong>A compromised device</strong> on either end: malware, a malicious browser extension, or someone looking over a
+      shoulder.
+    </li>
+    <li>
+      <strong>A recipient who keeps a copy.</strong> Once a note is shown, they can copy or screenshot it.
+    </li>
+    <li>
+      <strong>Weak passwords.</strong> If someone steals the link and opens the note, they get the encrypted data and can
+      guess passwords offline. A long passphrase makes that impractical.
+    </li>
+    <li>
+      <strong>A malicious server.</strong> Like any web app, you trust us to send you honest code each time you load the
+      page. Browsers can't yet verify that automatically.
+    </li>
+  </ul>
+
+  <h2>Reporting a vulnerability</h2>
+  <p>
+    Please email <a href={`mailto:${SECURITY_EMAIL}`}>{SECURITY_EMAIL}</a> and give us a reasonable chance to fix the
+    issue before you disclose it publicly.
+  </p>
+</Prose>

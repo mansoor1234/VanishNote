@@ -170,7 +170,13 @@
     @apply link;
   }
   .prose-page code {
-    @apply rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[0.9em];
+    @apply rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[0.9em] break-words;
+  }
+  .prose-page pre {
+    @apply mb-4 overflow-x-auto rounded-xl border border-line bg-surface-muted p-4 text-sm;
+  }
+  .prose-page pre code {
+    @apply bg-transparent p-0 break-normal;
   }
   .prose-page strong {
     @apply font-semibold text-ink;

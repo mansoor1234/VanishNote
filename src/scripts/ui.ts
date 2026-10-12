@@ -1,6 +1,6 @@
 /** Small DOM helpers shared by the page scripts. */
 
-export function $<T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document): T {
+export function $<T extends HTMLElement = HTMLElement>(selector: string, root: HTMLElement | Document = document): T {
   const el = root.querySelector<T>(selector);
   if (!el) throw new Error(`Missing element: ${selector}`);
   return el;
@@ -28,7 +28,7 @@ async function writeClipboard(text: string): Promise<boolean> {
  * Wire every [data-copy] button: copies the value/text of the element whose id is in
  * data-copy, and announces the result in the button's [data-copy-status] sibling.
  */
-export function initCopyButtons(root: ParentNode = document): void {
+export function initCopyButtons(root: HTMLElement | Document = document): void {
   for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {
     if (button.dataset['copyBound']) continue;
     button.dataset['copyBound'] = '1';

@@ -1,0 +1,32 @@
+---
+import { getCollection } from 'astro:content';
+import Prose from '../../layouts/Prose.astro';
+
+const posts = (await getCollection('blog')).sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf());
+const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'UTC' });
+---
+
+<Prose
+  title="Blog"
+  description="Practical guides to sharing passwords and sensitive information safely, from the team behind Vanishnote."
+  heading="Blog"
+  lead="Practical advice on sharing secrets without leaving them lying around."
+>
+  <ul class="list-none! pl-0! space-y-6">
+    {
+      posts.map((post) => (
+        <li class="mb-0! rounded-2xl border border-line p-6">
+          <h2 class="mt-0! mb-1! text-xl">
+            <a href={`/blog/${post.id}`} class="text-ink! no-underline! hover:text-accent!">
+              {post.data.title}
+            </a>
+          </h2>
+          <p class="mb-2! text-sm text-muted">
+            <time datetime={post.data.published.toISOString()}>{dateFormat.format(post.data.published)}</time>
+          </p>
+          <p class="mb-0!">{post.data.description}</p>
+        </li>
+      ))
+    }
+  </ul>
+</Prose>

@@ -1,0 +1,56 @@
+---
+import Prose from '../layouts/Prose.astro';
+import { CONTACT_EMAIL, LEGAL_UPDATED } from '../lib/site';
+---
+
+<Prose
+  title="Privacy policy"
+  description="Vanishnote's privacy policy: what we collect, how long we keep it, and what we never collect at all."
+  heading="Privacy policy"
+  lead={`Last updated ${LEGAL_UPDATED}. We built Vanishnote to collect as little as possible. This page explains the little we do handle.`}
+>
+  <h2>Notes</h2>
+  <p>
+    Notes are encrypted in your browser before they reach us. We store the encrypted data, its settings (expiry, views
+    remaining, whether a password was used) and the time it was created. We cannot decrypt notes. Each note is deleted
+    when its last allowed view happens, when it expires, or when you use its destroy link. Expired notes are removed
+    within an hour.
+  </p>
+
+  <h2>Email addresses</h2>
+  <p>
+    If you ask to be notified when a note is read, we store your email address with that note and use it only to send
+    that notification. It is deleted together with the note. We send notification emails through our email provider,
+    Resend, which processes your address only to deliver the message.
+  </p>
+
+  <h2>Technical data</h2>
+  <p>
+    Like every website, we receive your IP address and basic request information when you use Vanishnote. We use your
+    IP address briefly for rate limiting to prevent abuse, and we do not store it or log it. We have turned off request
+    logging on our hosting platform so note links are not recorded.
+  </p>
+
+  <h2>What we don't collect</h2>
+  <ul>
+    <li>No accounts, names or phone numbers.</li>
+    <li>No cookies, advertising identifiers or tracking pixels.</li>
+    <li>No third-party analytics, fonts or scripts.</li>
+    <li>Never your note's text, its key, or its password.</li>
+  </ul>
+
+  <h2>Service providers</h2>
+  <p>
+    Vanishnote runs on Cloudflare's network (hosting and database). Read notifications are delivered by Resend. Both act
+    on our behalf and only handle the data described above.
+  </p>
+
+  <h2>Your rights</h2>
+  <p>
+    Because we hold no accounts and delete data on a short schedule, there is usually nothing we can link to you. If you
+    have a question or request about your data, contact <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+  </p>
+
+  <h2>Changes</h2>
+  <p>If we change this policy, we'll update this page and the date at the top.</p>
+</Prose>

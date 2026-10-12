@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import { cleanPath } from '../lib/site';
 
 interface Props {
   title: string;
@@ -14,7 +15,7 @@ interface Props {
 
 const { title, description, privatePage = false, ogType = 'website', jsonLd } = Astro.props;
 const site = Astro.site ?? new URL('https://vanishnote.example');
-const canonical = new URL(Astro.url.pathname.replace(/\/$/, '') || '/', site).href;
+const canonical = new URL(cleanPath(Astro.url.pathname), site).href;
 const ogImage = new URL('/og.png', site).href;
 const fullTitle = title.includes('Vanishnote') ? title : `${title} · Vanishnote`;
 // JSON-LD is a data block, not executable script, so it is allowed under script-src 'self'.

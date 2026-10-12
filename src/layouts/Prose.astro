@@ -1,0 +1,27 @@
+---
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+  lead?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  ogType?: 'website' | 'article';
+}
+
+const { title, description, heading, lead, jsonLd, ogType } = Astro.props;
+---
+
+<Base title={title} description={description} jsonLd={jsonLd} ogType={ogType}>
+  <article class="container-page py-10 sm:py-14">
+    <div class="prose-page">
+      <slot name="before-heading" />
+      <h1 class="text-3xl leading-tight font-extrabold tracking-tight text-balance sm:text-4xl">{heading}</h1>
+      {lead && <p class="mt-4 text-lg text-muted">{lead}</p>}
+      <div class="mt-8">
+        <slot />
+      </div>
+    </div>
+  </article>
+</Base>

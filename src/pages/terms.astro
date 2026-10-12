@@ -1,0 +1,45 @@
+---
+import Prose from '../layouts/Prose.astro';
+import { CONTACT_EMAIL, LEGAL_UPDATED } from '../lib/site';
+---
+
+<Prose
+  title="Terms of use"
+  description="The terms for using Vanishnote, the encrypted self-destructing notes service."
+  heading="Terms of use"
+  lead={`Last updated ${LEGAL_UPDATED}. By using Vanishnote you agree to these terms.`}
+>
+  <h2>The service</h2>
+  <p>
+    Vanishnote lets you send encrypted notes that are deleted after being read or after they expire. It's provided free
+    of charge, as is, without guarantees of availability.
+  </p>
+
+  <h2>Acceptable use</h2>
+  <p>Don't use Vanishnote to:</p>
+  <ul>
+    <li>break the law, or help anyone else do so;</li>
+    <li>send malware, phishing links, spam or content that exploits or harms others;</li>
+    <li>attack, overload or probe the service, other than good-faith security research reported to us privately.</li>
+  </ul>
+  <p>We may block access from sources that abuse the service.</p>
+
+  <h2>Your content</h2>
+  <p>
+    You're responsible for what you send. Because notes are encrypted in your browser, we can't see or moderate their
+    contents, and we can't recover a note, its link or its password for you.
+  </p>
+
+  <h2>No warranty</h2>
+  <p>
+    We work hard to keep Vanishnote secure, but no system is perfect. Read our <a href="/security">security model</a> to
+    understand its limits. To the extent permitted by law, Vanishnote is provided without warranties of any kind, and
+    we're not liable for indirect or consequential losses from using it.
+  </p>
+
+  <h2>Changes</h2>
+  <p>We may update these terms. Continued use after an update means you accept the new terms.</p>
+
+  <h2>Contact</h2>
+  <p><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+</Prose>

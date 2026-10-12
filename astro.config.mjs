@@ -21,6 +21,8 @@ export default defineConfig({
   },
   adapter: cloudflare({ imageService: 'passthrough' }),
   session: false,
+  // Shiki emits inline style attributes, which our CSP (style-src 'self') blocks.
+  markdown: { syntaxHighlight: false },
   integrations: [
     sitemap({
       filter: (page) => !/\/(n|d|api)(\/|$)/.test(new URL(page).pathname),
