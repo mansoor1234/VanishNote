@@ -7,16 +7,22 @@ import { cleanPath } from '../lib/site';
 interface Props {
   title: string;
   description: string;
-  /** Note pages: noindex, no canonical, no social image. */
+  /** Note pages: noindex, no canonical, no og:url. */
   privatePage?: boolean;
   ogType?: 'website' | 'article';
+  /** Social card image path. Private pages only get one when given explicitly (it must reveal nothing). */
+  ogImage?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const { title, description, privatePage = false, ogType = 'website', jsonLd } = Astro.props;
 const site = Astro.site ?? new URL('https://vanishnote.example');
 const canonical = new URL(cleanPath(Astro.url.pathname), site).href;
-const ogImage = new URL('/og.png', site).href;
+const ogImagePath = Astro.props.ogImage ?? (privatePage ? undefined : '/og.png');
+const ogImage = ogImagePath ? new URL(ogImagePath, site).href : undefined;
+const ogImageAlt = privatePage
+  ? 'A private note that opens once, sent with Vanishnote'
+  : 'Vanishnote — encrypted notes that disappear after reading';
 const fullTitle = title.includes('Vanishnote') ? title : `${title} · Vanishnote`;
 // JSON-LD is a data block, not executable script, so it is allowed under script-src 'self'.
 // Escape "<" so content can never close the script element.
@@ -50,21 +56,21 @@ const ldJson = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefi
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
+    {!privatePage && <meta property="og:url" content={canonical} />}
     {
-      !privatePage && (
+      ogImage && (
         <>
-          <meta property="og:url" content={canonical} />
           <meta property="og:image" content={ogImage} />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
-          <meta property="og:image:alt" content="Vanishnote — encrypted notes that disappear after reading" />
+          <meta property="og:image:alt" content={ogImageAlt} />
         </>
       )
     }
-    <meta name="twitter:card" content={privatePage ? 'summary' : 'summary_large_image'} />
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
-    {!privatePage && <meta name="twitter:image" content={ogImage} />}
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
     {ldJson && <script type="application/ld+json" set:html={ldJson} is:inline />}
   </head>
   <body class="flex min-h-dvh flex-col">

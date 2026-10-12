@@ -1,7 +1,7 @@
 import { encryptNote, utf8ByteLength } from '../lib/crypto';
 import { MAX_NOTE_BYTES, type ExpiryOption } from '../lib/limits';
 import { createNote } from './api-client';
-import { $, formatBytes, initCopyButtons, showState } from './ui';
+import { $, cooldown, formatBytes, guardUnload, initCopyButtons, initShareButtons, showState } from './ui';
 
 export function initPasswordToggles(root: HTMLElement | Document = document): void {
   for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-toggle-password]')) {
@@ -28,7 +28,17 @@ export function initCreateForm(): void {
   const errorBox = $('#create-error');
   const submit = $<HTMLButtonElement>('#create-submit');
 
-  initCopyButtons(root);
+  // The share link can't be shown again, so keep the sender from losing it by accident:
+  // until it has been copied or shared, reload/close and "Write another note" ask first.
+  let releaseGuard: (() => void) | undefined;
+  const linkSaved = (targetId: string) => {
+    if (targetId !== 'share-link') return;
+    releaseGuard?.();
+    releaseGuard = undefined;
+  };
+
+  initCopyButtons(root, linkSaved);
+  initShareButtons(root, 'I sent you a private note. It can only be opened once:', linkSaved);
   initPasswordToggles(root);
 
   const showError = (message: string, focus?: HTMLElement) => {
@@ -46,9 +56,11 @@ export function initCreateForm(): void {
 
   notifyToggle.addEventListener('change', () => {
     notifyFields.hidden = !notifyToggle.checked;
-    notifyToggle.setAttribute('aria-expanded', String(notifyToggle.checked));
     if (notifyToggle.checked) notifyEmail.focus();
   });
+
+  // Seconds to keep the submit button disabled after a 429.
+  let cooldownAfter = 0;
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -77,7 +89,11 @@ export function initCreateForm(): void {
         maxReads: Number(data.get('maxReads')),
         ...(email ? { notifyEmail: email } : {}),
       });
-      if (!result.ok) return showError(result.message);
+      if (!result.ok) {
+        showError(result.message);
+        if (result.retryAfter) cooldownAfter = result.retryAfter;
+        return;
+      }
 
       const { id, deleteToken, expiresAt } = result.data;
       $<HTMLInputElement>('#share-link').value = `${location.origin}/n/${id}#${linkKey}`;
@@ -89,16 +105,27 @@ export function initCreateForm(): void {
       form.reset();
       size.textContent = formatBytes(0);
       notifyFields.hidden = true;
+      releaseGuard = guardUnload();
       showState(root, 'result');
     } catch {
       showError('Encryption failed in this browser. Please try a current version of Chrome, Firefox, Safari or Edge.');
     } finally {
-      submit.disabled = false;
       submit.textContent = 'Create secure link';
+      if (cooldownAfter > 0) cooldown(submit, cooldownAfter);
+      else submit.disabled = false;
+      cooldownAfter = 0;
     }
   });
 
   $('#create-another').addEventListener('click', () => {
+    if (
+      releaseGuard &&
+      !window.confirm("You haven't copied the link yet. It can't be shown again. Leave anyway?")
+    ) {
+      return;
+    }
+    releaseGuard?.();
+    releaseGuard = undefined;
     $<HTMLInputElement>('#share-link').value = '';
     $<HTMLInputElement>('#destroy-link').value = '';
     showState(root, 'form');

@@ -1,6 +1,6 @@
 import { DELETE_TOKEN_RE } from '../lib/limits';
 import { destroyNote, fragment, idFromPath } from './api-client';
-import { $, showState } from './ui';
+import { $, cooldown, showState } from './ui';
 
 export function initDestroy(): void {
   const root = $('#destroy');
@@ -17,6 +17,7 @@ export function initDestroy(): void {
     if (result.status === 404) return showState(root, 'gone');
     $('[data-error-message]').textContent = result.message;
     showState(root, 'error');
+    if (result.retryAfter) cooldown($<HTMLButtonElement>('[data-retry]'), result.retryAfter);
   };
 
   $('#destroy-button').addEventListener('click', destroy);

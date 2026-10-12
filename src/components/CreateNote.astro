@@ -17,7 +17,7 @@ const reads = Array.from({ length: MAX_READS }, (_, i) => i + 1);
           name="note"
           rows="7"
           required
-          class="input min-h-40 resize-y font-mono text-[0.95rem]"
+          class="input min-h-40 resize-y"
           placeholder="Passwords, keys, private details…"
           aria-describedby="note-size"
           autocomplete="off"
@@ -62,13 +62,14 @@ const reads = Array.from({ length: MAX_READS }, (_, i) => i + 1);
           </button>
         </div>
         <p id="password-hint" class="field-hint">
-          Adds a second lock. Send the password separately from the link. It can't be recovered if it's lost.
+          Optional second lock. Send the password a different way than the link (for example, say it on a call). Lost
+          passwords can't be recovered.
         </p>
       </div>
 
       <div>
         <div class="flex items-start gap-3">
-          <input id="notify-toggle" type="checkbox" class="mt-1 size-5 shrink-0 accent-accent" aria-controls="notify-fields" aria-expanded="false" />
+          <input id="notify-toggle" type="checkbox" class="mt-1 size-5 shrink-0 accent-accent" aria-controls="notify-fields" />
           <label for="notify-toggle" class="text-sm">
             <span class="font-semibold">Email me when it's read</span>
             <span class="block text-muted">We keep your address only until the note is destroyed.</span>
@@ -89,8 +90,8 @@ const reads = Array.from({ length: MAX_READS }, (_, i) => i + 1);
   <div data-state="result" hidden>
     <h2 class="text-xl font-bold tracking-tight" tabindex="-1" data-focus>Your link is ready</h2>
     <p class="notice-warn mt-4">
-      <strong>Copy it now.</strong> This is the only time it will be shown. The key is part of the link and was never
-      sent to us, so we can't show it again.
+      <strong>Copy or share this link now.</strong> We can't show it again: the key is inside the link and never reached
+      us.
     </p>
 
     <div class="mt-5">
@@ -98,6 +99,7 @@ const reads = Array.from({ length: MAX_READS }, (_, i) => i + 1);
       <div class="flex flex-col gap-2 sm:flex-row">
         <input id="share-link" type="text" readonly class="input font-mono text-sm" />
         <button type="button" class="btn-primary shrink-0" data-copy="share-link">Copy link</button>
+        <button type="button" class="btn-secondary shrink-0" data-share="share-link" hidden>Share link…</button>
         <span class="sr-only" aria-live="polite" data-copy-status></span>
       </div>
       <p class="field-hint" data-expiry></p>

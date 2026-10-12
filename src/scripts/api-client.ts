@@ -4,7 +4,7 @@ import type { ExpiryOption } from '../lib/limits';
 
 export type ApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: number; message: string };
+  | { ok: false; status: number; message: string; retryAfter?: number };
 
 const NETWORK_ERROR = "We couldn't reach Vanishnote. Check your connection and try again.";
 
@@ -30,7 +30,13 @@ async function call<T>(path: string, init: RequestInit): Promise<ApiResult<T>> {
   }
   if (response.ok) return { ok: true, data: body as T };
   const message = (body as ErrorResponse | null)?.message ?? 'Something went wrong. Please try again.';
-  return { ok: false, status: response.status, message };
+  const retryAfter = Number(response.headers.get('Retry-After'));
+  return {
+    ok: false,
+    status: response.status,
+    message,
+    ...(retryAfter > 0 ? { retryAfter } : {}),
+  };
 }
 
 export interface CreateOptions {

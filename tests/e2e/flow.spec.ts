@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const GONE = "This note doesn't exist or has already been read.";
+const GONE = 'This note is gone';
+const GENERIC_404 = "This note doesn't exist or has already been read.";
+
+// The app guards against losing a link or note with beforeunload/confirm prompts.
+// Accept them by default so navigation in tests proceeds; tests that check a guard override this.
+test.beforeEach(({ page }) => {
+  page.on('dialog', (dialog) => void dialog.accept().catch(() => {}));
+});
 
 /**
  * Collect console errors, which include CSP violations. Chrome also logs every non-2xx fetch,
@@ -45,7 +52,7 @@ test('create → open link → reveal → destroyed on reload', async ({ page })
 
   await page.goto(link);
   await expect(page.getByRole('heading', { name: "You've received a private note" })).toBeVisible();
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.getByRole('heading', { name: "Here's your note" })).toBeVisible();
   await expect(page.locator('#note-content')).toHaveText(secret);
   await expect(page.getByText('This note has now been destroyed')).toBeVisible();
@@ -56,10 +63,42 @@ test('create → open link → reveal → destroyed on reload', async ({ page })
   expect(copied.replace(/\r\n/g, '\n')).toBe(secret);
 
   await page.reload();
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.getByRole('heading', { name: GONE })).toBeVisible();
+  await expect(page.getByText(GENERIC_404)).toBeVisible();
 
   expect(errors).toEqual([]);
+});
+
+test('an uncopied link is protected from "Write another note" until it is copied', async ({ page }) => {
+  await createNote(page, 'do not lose me');
+  page.removeAllListeners('dialog');
+
+  // Dismissing the confirm keeps the one-time link on screen.
+  let prompt = '';
+  page.once('dialog', (dialog) => {
+    prompt = dialog.message();
+    void dialog.dismiss();
+  });
+  await page.getByRole('button', { name: 'Write another note' }).click();
+  expect(prompt).toContain("haven't copied the link");
+  await expect(page.getByLabel('Share this link')).not.toHaveValue('');
+
+  // Once copied, there's no prompt.
+  await page.getByRole('button', { name: 'Copy link' }).click();
+  page.once('dialog', () => {
+    throw new Error('unexpected dialog after copying');
+  });
+  await page.getByRole('button', { name: 'Write another note' }).click();
+  await expect(page.getByLabel('Your note')).toBeVisible();
+});
+
+test('note pages show a generic social card and no live region around the note', async ({ request, page }) => {
+  const html = await (await request.get('/n/AAAAAAAAAAAAAAAAAAAAAA')).text();
+  expect(html).toMatch(/<meta property="og:image" content="[^"]+\/og-note\.png"/);
+  expect(html).not.toContain('og:url');
+  await page.goto('/n/AAAAAAAAAAAAAAAAAAAAAA#x');
+  await expect(page.locator('#reveal')).not.toHaveAttribute('aria-live');
 });
 
 test('opening the link (like a chat preview bot) does not consume the note', async ({ page, request }) => {
@@ -73,7 +112,7 @@ test('opening the link (like a chat preview bot) does not consume the note', asy
     expect(await res.text()).not.toContain('preview-safe');
   }
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.locator('#note-content')).toHaveText('preview-safe');
 });
 
@@ -82,7 +121,7 @@ test('password-protected note survives a wrong guess and unlocks with the right 
   await expect(page.getByText('different channel')).toBeVisible();
 
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.getByRole('heading', { name: 'This note is password-protected' })).toBeVisible();
 
   await page.getByLabel('Password').fill('wrong');
@@ -97,15 +136,15 @@ test('password-protected note survives a wrong guess and unlocks with the right 
 test('multi-view note counts down and then disappears', async ({ page }) => {
   const { link } = await createNote(page, 'seen twice', { maxReads: '2' });
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.getByText('can be opened 1 more time')).toBeVisible();
   await page.goto('about:blank');
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.getByText('This note has now been destroyed')).toBeVisible();
   await page.goto('about:blank');
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.getByRole('heading', { name: GONE })).toBeVisible();
 });
 
@@ -113,10 +152,10 @@ test('a link without its key does not burn the note', async ({ page }) => {
   const { link } = await createNote(page, 'keep me');
   await page.goto(link.split('#')[0]!);
   await expect(page.getByRole('heading', { name: 'This link is incomplete' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Reveal note' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Open and read note' })).toBeHidden();
   await page.goto('about:blank');
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.locator('#note-content')).toHaveText('keep me');
 });
 
@@ -124,7 +163,7 @@ test('HTML in a note is shown as text, never executed', async ({ page }) => {
   const payload = '<img src=x onerror="window.__pwned=1"><script>window.__pwned=2</script><b>bold?</b>';
   const { link } = await createNote(page, payload);
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.locator('#note-content')).toHaveText(payload);
   expect(await page.locator('#note-content img, #note-content script, #note-content b').count()).toBe(0);
   expect(await page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
@@ -138,7 +177,7 @@ test('the creator can destroy a note early with the destroy link', async ({ page
   await expect(page.getByRole('heading', { name: 'The note has been destroyed' })).toBeVisible();
 
   await page.goto(link);
-  await page.getByRole('button', { name: 'Reveal note' }).click();
+  await page.getByRole('button', { name: 'Open and read note' }).click();
   await expect(page.getByRole('heading', { name: GONE })).toBeVisible();
 });
 

@@ -24,29 +24,129 @@ async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
+function textOf(target: HTMLElement): string {
+  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+    ? target.value
+    : (target.textContent ?? '');
+}
+
+/** Put a short message in the [data-copy-status] live region next to `button`, then clear it. */
+function announce(button: HTMLElement, message: string): void {
+  const status = button.parentElement?.querySelector<HTMLElement>('[data-copy-status]');
+  if (!status) return;
+  status.textContent = message;
+  // Clearing lets an identical message be announced again on the next copy.
+  window.setTimeout(() => {
+    status.textContent = '';
+  }, 2000);
+}
+
 /**
  * Wire every [data-copy] button: copies the value/text of the element whose id is in
- * data-copy, and announces the result in the button's [data-copy-status] sibling.
+ * data-copy. `onCopied` receives the target id after a successful copy.
  */
-export function initCopyButtons(root: HTMLElement | Document = document): void {
+export function initCopyButtons(
+  root: HTMLElement | Document = document,
+  onCopied?: (targetId: string) => void,
+): void {
   for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-copy]')) {
     if (button.dataset['copyBound']) continue;
     button.dataset['copyBound'] = '1';
-    const label = button.textContent ?? 'Copy';
+    const label = button.textContent?.trim() ?? 'Copy';
     button.addEventListener('click', async () => {
-      const target = document.getElementById(button.dataset['copy'] ?? '');
+      const targetId = button.dataset['copy'] ?? '';
+      const target = document.getElementById(targetId);
       if (!target) return;
-      const text = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ? target.value : (target.textContent ?? '');
-      const ok = await writeClipboard(text);
-      if (!ok && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) target.select();
-      button.textContent = ok ? 'Copied' : 'Press Ctrl+C';
-      const status = button.parentElement?.querySelector<HTMLElement>('[data-copy-status]');
-      if (status) status.textContent = ok ? 'Copied to clipboard.' : 'Copy failed. The text is selected; copy it manually.';
+      const ok = await writeClipboard(textOf(target));
+      if (ok) {
+        button.textContent = 'Copied';
+        announce(button, 'Copied to clipboard.');
+        onCopied?.(targetId);
+      } else {
+        selectContents(target);
+        button.textContent = 'Select & copy';
+        announce(button, "Couldn't copy automatically. The text is selected. Long-press or press Ctrl+C to copy it.");
+      }
       window.setTimeout(() => {
         button.textContent = label;
       }, 2000);
     });
   }
+}
+
+function selectContents(target: HTMLElement): void {
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+    target.focus();
+    target.select();
+    return;
+  }
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+/**
+ * Wire every [data-share] button to the native share sheet, if the browser has one.
+ * On touch devices the share button becomes the primary action. Returns false when
+ * sharing is unavailable (buttons stay hidden).
+ */
+export function initShareButtons(
+  root: HTMLElement | Document,
+  shareText: string,
+  onShared?: (targetId: string) => void,
+): boolean {
+  if (typeof navigator.share !== 'function') return false;
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-share]')) {
+    const targetId = button.dataset['share'] ?? '';
+    button.hidden = false;
+    if (touch) {
+      button.classList.replace('btn-secondary', 'btn-primary');
+      const copy = root.querySelector<HTMLElement>(`button[data-copy="${targetId}"]`);
+      copy?.classList.replace('btn-primary', 'btn-secondary');
+      button.parentElement?.insertBefore(button, copy ?? null);
+    }
+    button.addEventListener('click', async () => {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      try {
+        await navigator.share({ text: shareText, url: textOf(target) });
+        onShared?.(targetId);
+      } catch {
+        // Cancelled by the user, or blocked: the copy button is still there.
+      }
+    });
+  }
+  return true;
+}
+
+/** Ask the browser to confirm before the page is closed or reloaded, until the returned function is called. */
+export function guardUnload(): () => void {
+  const handler = (event: BeforeUnloadEvent) => {
+    event.preventDefault();
+  };
+  window.addEventListener('beforeunload', handler);
+  return () => window.removeEventListener('beforeunload', handler);
+}
+
+/** Disable a button for `seconds`, showing a countdown, then restore its label. */
+export function cooldown(button: HTMLButtonElement, seconds: number): void {
+  const label = button.textContent?.trim() ?? '';
+  let left = Math.max(1, Math.ceil(seconds));
+  button.disabled = true;
+  const tick = () => {
+    if (left <= 0) {
+      button.disabled = false;
+      button.textContent = label;
+      return;
+    }
+    button.textContent = `${label} (${left}s)`;
+    left--;
+    window.setTimeout(tick, 1000);
+  };
+  tick();
 }
 
 export function formatBytes(bytes: number): string {

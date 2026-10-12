@@ -49,17 +49,18 @@ const points = [
   description="Share passwords and private messages through a one-time link. Encrypted in your browser, destroyed after reading. Free, no sign-up."
   jsonLd={jsonLd}
 >
-  <div class="container-page grid gap-10 py-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:items-start lg:gap-14">
+  <div class="container-page grid gap-6 py-6 sm:gap-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:items-start lg:gap-14">
     <div class="lg:sticky lg:top-10">
       <p class="text-sm font-semibold tracking-wide text-accent uppercase">Private by design</p>
-      <h1 class="mt-2 text-4xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl">
+      <h1 class="mt-2 text-3xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl">
         Send a secret that vanishes once it's read.
       </h1>
-      <p class="mt-4 max-w-prose text-lg text-muted">
+      <!-- On small screens the composer comes first; the steps section below repeats this detail. -->
+      <p class="mt-4 hidden max-w-prose text-lg text-muted sm:block">
         Vanishnote encrypts your message on your device and gives you a one-time link. We only ever hold scrambled
         data we can't unlock, and we delete it as soon as it's opened.
       </p>
-      <ul class="mt-6 space-y-2 text-sm">
+      <ul class="mt-6 hidden space-y-2 text-sm sm:block">
         <li class="flex gap-2"><span aria-hidden="true" class="text-accent">✓</span> End-to-end encrypted with AES-256</li>
         <li class="flex gap-2"><span aria-hidden="true" class="text-accent">✓</span> No account, no cookies, no tracking</li>
         <li class="flex gap-2"><span aria-hidden="true" class="text-accent">✓</span> Optional password and read receipts</li>
