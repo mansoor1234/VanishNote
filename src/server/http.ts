@@ -117,6 +117,39 @@ export async function readJson(request: Request, maxBytes: number): Promise<unkn
   }
 }
 
+/**
+ * Read a multipart body with a "meta" JSON field and an optional "file" field. Rejects bodies
+ * larger than `maxBytes` (declared length) before parsing.
+ */
+export async function readMultipart(
+  request: Request,
+  maxBytes: number,
+): Promise<{ meta: unknown; file: File | null }> {
+  const type = request.headers.get('Content-Type') ?? '';
+  if (!/^multipart\/form-data\s*;/i.test(type)) {
+    throw new BodyError(415, 'unsupported_media_type', 'Expected a multipart/form-data body.');
+  }
+  const declared = Number(request.headers.get('Content-Length') ?? 'NaN');
+  if (!Number.isFinite(declared)) throw new BodyError(411, 'length_required', 'Content-Length is required.');
+  if (declared > maxBytes) throw new BodyError(413, 'too_large', 'That file is too large for your plan.');
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    throw new BodyError(400, 'invalid_body', 'The upload could not be read.');
+  }
+  const metaField = form.get('meta');
+  if (typeof metaField !== 'string') throw new BodyError(400, 'invalid_body', 'Missing meta field.');
+  let meta: unknown;
+  try {
+    meta = JSON.parse(metaField);
+  } catch {
+    throw new BodyError(400, 'invalid_json', 'The meta field is not valid JSON.');
+  }
+  const file = form.get('file');
+  return { meta, file: file instanceof File && file.size > 0 ? file : null };
+}
+
 export async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');

@@ -27,6 +27,33 @@ export const EXPIRY_SECONDS = {
 export type ExpiryOption = keyof typeof EXPIRY_SECONDS;
 export const DEFAULT_EXPIRY: ExpiryOption = '7d';
 
+/** "Shred after a set time" choices for account notes, capped by the plan's retention. */
+export const TIMED_EXPIRY_DAYS = {
+  '1h': 1 / 24,
+  '1d': 1,
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
+  '180d': 180,
+  '365d': 365,
+} as const;
+export type TimedExpiry = keyof typeof TIMED_EXPIRY_DAYS;
+export const TIMED_EXPIRY_LABELS: Record<TimedExpiry, string> = {
+  '1h': '1 hour',
+  '1d': '1 day',
+  '7d': '7 days',
+  '30d': '30 days',
+  '90d': '3 months',
+  '180d': '6 months',
+  '365d': '12 months',
+};
+
+/** Encrypted file names/types are tiny; this caps the encrypted metadata field. */
+export const MAX_FILE_META_CHARS = 2048;
+export const MAX_TITLE_CHARS = 120;
+export const MAX_HINT_CHARS = 200;
+export const MAX_MESSAGE_CHARS = 2000;
+
 export const MIN_READS = 1;
 export const MAX_READS = 10;
 

@@ -10,7 +10,7 @@ import {
   type CreateNoteResponse,
   type ReadNoteResponse,
 } from '../lib/schema';
-import { consumeNote, deleteNoteWithToken, insertNote } from './db';
+import { consumeNote, deleteNoteWithToken, insertNote, type ConsumedNote } from './db';
 import type { Notifier } from './email';
 import { BodyError, error, json, noContent, notFound, readJson, sha256Hex, tooManyRequests } from './http';
 
@@ -25,6 +25,8 @@ export interface ApiDeps {
   readLimiter?: Limiter;
   notify?: Notifier;
   waitUntil?: (promise: Promise<unknown>) => void;
+  /** Called after an account (team) note is read: records activity, notifies the sender, issues file grants. */
+  onAccountRead?: (id: string, note: ConsumedNote, now: number) => Promise<{ downloadToken?: string }>;
 }
 
 function clientKey(request: Request): string {
@@ -105,6 +107,21 @@ export async function handleReadNote(request: Request, id: string, deps: ApiDeps
     readsLeft: note.reads_left,
   };
   if (note.salt) response.salt = note.salt;
+  if (note.reads_left < 0) response.expiresAt = note.expires_at;
+  if (note.password_hint) response.passwordHint = note.password_hint;
+
+  if (note.team_id && deps.onAccountRead) {
+    const { downloadToken } = await deps.onAccountRead(id, note, now);
+    if (downloadToken && note.file_key && note.file_iv && note.file_meta && note.file_meta_iv) {
+      response.file = {
+        size: note.file_size ?? 0,
+        iv: note.file_iv,
+        meta: note.file_meta,
+        metaIv: note.file_meta_iv,
+        downloadToken,
+      };
+    }
+  }
   return json(response);
 }
 
@@ -120,6 +137,6 @@ export async function handleDeleteNote(request: Request, id: string, deps: ApiDe
   const parsed = deleteNoteSchema.safeParse(body);
   if (!parsed.success || !NOTE_ID_RE.test(id)) return notFound();
 
-  const deleted = await deleteNoteWithToken(deps.db, id, await sha256Hex(parsed.data.deleteToken));
+  const deleted = await deleteNoteWithToken(deps.db, id, await sha256Hex(parsed.data.deleteToken), deps.now?.() ?? Date.now());
   return deleted ? noContent() : notFound();
 }

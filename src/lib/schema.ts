@@ -49,8 +49,19 @@ export interface ReadNoteResponse {
   iv: string;
   salt?: string;
   hasPassword: boolean;
-  /** Reads remaining after this one; 0 means the note has been destroyed. */
+  /** Reads remaining after this one; 0 = destroyed; -1 = time-based note, readable until expiresAt. */
   readsLeft: number;
+  expiresAt?: number;
+  /** Plaintext hint chosen by the sender (never the password). */
+  passwordHint?: string;
+  /** Encrypted attachment; download it once with `downloadToken`. */
+  file?: {
+    size: number;
+    iv: string;
+    meta: string;
+    metaIv: string;
+    downloadToken: string;
+  };
 }
 
 export interface ErrorResponse {

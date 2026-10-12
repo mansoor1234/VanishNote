@@ -4,4 +4,4 @@ import { apiDeps } from '../../../server/deps';
 
 export const prerender = false;
 
-export const POST: APIRoute = ({ request, locals }) => handleCreateNote(request, apiDeps(locals));
+export const POST: APIRoute = ({ request, locals }) => handleCreateNote(request, apiDeps(locals, request));
