@@ -11,7 +11,8 @@ compatibility_flags = ["nodejs_als"]
 enabled = false
 
 [vars]
-APP_URL = "http://localhost:4321"
+# Local default (wrangler dev / npm run preview port). Set your real origin before deploying.
+APP_URL = "http://localhost:8787"
 # Must be an address on a domain verified in Resend.
 EMAIL_FROM = "Vanishnote <notify@example.com>"
 # Cloudflare Turnstile site key (public). This is Cloudflare's always-pass test key; replace in production.
