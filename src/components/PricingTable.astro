@@ -4,8 +4,11 @@ import { PLAN_ORDER, PLANS, PRICING_ROWS, type PlanId } from '../lib/plans';
 interface Props {
   /** In the dashboard: mark the current plan and point upgrades at the contact form. */
   currentPlan?: PlanId;
+  /** Heading level for plan names, so the outline stays in order on each page. */
+  headingLevel?: 2 | 3;
 }
-const { currentPlan } = Astro.props;
+const { currentPlan, headingLevel = 3 } = Astro.props;
+const PlanHeading = headingLevel === 2 ? 'h2' : 'h3';
 const plans = PLAN_ORDER.map((id) => PLANS[id]);
 
 function cta(id: PlanId) {
@@ -50,7 +53,7 @@ function cta(id: PlanId) {
               </p>
             )}
             <div class:list={['p-6', !featured && 'lg:pt-[3.25rem]']}>
-              <h3 id={`plan-${plan.id}`} class="text-xl font-bold">{plan.name}</h3>
+              <PlanHeading id={`plan-${plan.id}`} class="text-xl font-bold">{plan.name}</PlanHeading>
               <p class="text-sm text-muted">{plan.tagline}</p>
               <p class="mt-5 flex items-baseline gap-1.5">
                 <span class="text-4xl font-extrabold tracking-tight">
