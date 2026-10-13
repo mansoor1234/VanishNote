@@ -106,6 +106,7 @@ describe('POST /api/notes', () => {
     ['oversized ciphertext', { ciphertext: 'A'.repeat(MAX_CIPHERTEXT_CHARS + 1), iv: 'AAAAAAAAAAAAAAAA' }],
     ['bad salt', { ciphertext: 'A'.repeat(40), iv: 'AAAAAAAAAAAAAAAA', salt: 'short' }],
     ['unknown expiry', { ciphertext: 'A'.repeat(40), iv: 'AAAAAAAAAAAAAAAA', options: { expiresIn: '1y' } }],
+    ['expiry beyond the Free plan (30 days)', { ciphertext: 'A'.repeat(40), iv: 'AAAAAAAAAAAAAAAA', options: { expiresIn: '30d' } }],
     ['zero reads', { ciphertext: 'A'.repeat(40), iv: 'AAAAAAAAAAAAAAAA', options: { maxReads: 0 } }],
     ['too many reads', { ciphertext: 'A'.repeat(40), iv: 'AAAAAAAAAAAAAAAA', options: { maxReads: 11 } }],
     ['fractional reads', { ciphertext: 'A'.repeat(40), iv: 'AAAAAAAAAAAAAAAA', options: { maxReads: 1.5 } }],
@@ -267,7 +268,7 @@ describe('expiry', () => {
 
   it('purgeExpired (cron) deletes only expired rows, including their emails', async () => {
     const { body: short } = await validNote({ expiresIn: '1h', notifyEmail: 'a@example.com' });
-    const { body: long } = await validNote({ expiresIn: '30d' });
+    const { body: long } = await validNote({ expiresIn: '7d' });
     await create(short);
     await create(short);
     const keep = (await create(long)).data.id;

@@ -164,5 +164,7 @@ on the next request. Hooking up Stripe later means setting the same two columns 
   `/signup`, `/forgot` and `/verify`.
 - **Logging.** Workers observability is disabled because invocation logs record request URLs,
   which contain note IDs.
-- **Anonymous notes vs plans.** Quick notes from the home page keep their original limits (up to
-  30 days, no attachments) and don't count toward account quotas.
+- **Quick notes vs plans.** Notes from the home page need no account and have no monthly quota
+  (only the per-IP rate limit). Their longest lifetime equals the Free plan's retention (7 days),
+  so signing up never means shorter-lived notes; a unit test keeps the two in step. Accounts add
+  attachments, the dashboard, activity history, requests and longer retention on paid plans.

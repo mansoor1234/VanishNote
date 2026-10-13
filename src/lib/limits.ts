@@ -18,11 +18,14 @@ export const DELETE_TOKEN_RE = new RegExp(`^[A-Za-z0-9_-]{${base64UrlLength(DELE
 
 export const PBKDF2_ITERATIONS = 600_000;
 
+/**
+ * Expiry choices for quick notes from the home page (no account). The longest matches the Free
+ * plan's retention, so signing up never means shorter-lived notes (tests/unit/plans.test.ts).
+ */
 export const EXPIRY_SECONDS = {
   '1h': 60 * 60,
   '1d': 24 * 60 * 60,
   '7d': 7 * 24 * 60 * 60,
-  '30d': 30 * 24 * 60 * 60,
 } as const;
 export type ExpiryOption = keyof typeof EXPIRY_SECONDS;
 export const DEFAULT_EXPIRY: ExpiryOption = '7d';
