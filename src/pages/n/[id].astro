@@ -4,19 +4,31 @@
  * bots (chat apps, mail scanners) from burning notes. The note is consumed when the
  * recipient presses the open button, which POSTs to /api/notes/:id/read.
  */
+import BrandHeader from '../../components/BrandHeader.astro';
 import Base from '../../layouts/Base.astro';
+import { requestCtx } from '../../server/deps';
 import { NOT_FOUND_MESSAGE } from '../../server/http';
+import { loadBrand } from '../../server/team';
 
 export const prerender = false;
+
+// Branding comes from the link's ?b= parameter (a team's public brand id), never from the note,
+// so rendering this page still doesn't reveal whether the note exists.
+const ctx = requestCtx(Astro.locals, Astro.request);
+const brand = await loadBrand(ctx.env.DB, Astro.url.searchParams.get('b'));
+const Wrapper = brand ? 'main' : 'div';
 ---
 
 <Base
-  title="Someone sent you a private note"
+  title={brand ? `A private note from ${brand.name}` : 'Someone sent you a private note'}
   description="An encrypted note that opens once. Vanishnote can't read it, and you don't need an account."
   privatePage
   ogImage="/og-note.png"
+  chrome={brand ? 'none' : 'site'}
+  titleSuffix={brand ? brand.name : undefined}
 >
-  <div class="container-page py-10 sm:py-16">
+  {brand && <BrandHeader brand={brand} />}
+  <Wrapper class="container-page py-10 sm:py-16" id={brand ? 'main' : undefined}>
     <!-- No aria-live here: the decrypted note must never be read aloud unprompted.
          Each state change moves focus to its heading instead. -->
     <section id="reveal" class="card mx-auto max-w-2xl">
@@ -32,7 +44,11 @@ export const prerender = false;
           Opening this note may destroy it for good. Make sure you're somewhere private and ready to copy what you need.
         </p>
         <p class="mt-3 text-sm text-muted">
-          Vanishnote is a free tool for sending encrypted notes. We can't read this note, and you don't need an account.
+          {
+            brand
+              ? `Sent securely by ${brand.name}. It's end-to-end encrypted, and you don't need an account to read it.`
+              : "Vanishnote is a free tool for sending encrypted notes. We can't read this note, and you don't need an account."
+          }
         </p>
         <button id="reveal-button" type="button" class="btn-primary mt-6">Open and read note</button>
       </div>
@@ -52,6 +68,7 @@ export const prerender = false;
       <div data-state="password" hidden>
         <h1 class="text-2xl font-bold tracking-tight" tabindex="-1" data-focus>This note is password-protected</h1>
         <p class="notice-warn mt-4" data-password-status></p>
+        <p class="mt-4 rounded-xl bg-surface-muted p-3 text-sm" data-password-hint hidden></p>
         <form id="password-form" class="mt-5 space-y-3" novalidate>
           <label for="reveal-password" class="field-label">Password</label>
           <input id="reveal-password" type="password" class="input" autocomplete="off" required />
@@ -73,7 +90,14 @@ export const prerender = false;
         <div class="mt-4 flex flex-wrap items-center gap-3">
           <button type="button" class="btn-primary" data-copy="note-content">Copy note</button>
           <span class="sr-only" aria-live="polite" data-copy-status></span>
-          <a href="/" class="btn-secondary">Write your own note</a>
+          {!brand && <a href="/" class="btn-secondary">Write your own note</a>}
+        </div>
+        <div class="mt-6 rounded-xl border border-line p-4" data-attachment hidden>
+          <p class="font-semibold">Attachment</p>
+          <p class="mt-1 text-sm text-muted" data-attachment-name></p>
+          <button type="button" class="btn-primary mt-3" data-attachment-download>Download and decrypt</button>
+          <p class="mt-2 text-sm" role="status" data-attachment-status></p>
+          <p class="mt-2 text-xs text-muted">The download link works once and expires in 10 minutes.</p>
         </div>
       </div>
 
@@ -84,7 +108,7 @@ export const prerender = false;
           Notes are destroyed once they've been read or when they expire. If you weren't expecting that, tell the
           sender: someone else may have opened it first.
         </p>
-        <a href="/" class="btn-secondary mt-6">Write your own note</a>
+        {!brand && <a href="/" class="btn-secondary mt-6">Write your own note</a>}
       </div>
 
       <div data-state="error" hidden>
@@ -96,7 +120,7 @@ export const prerender = false;
         </div>
       </div>
     </section>
-  </div>
+  </Wrapper>
 </Base>
 
 <script>

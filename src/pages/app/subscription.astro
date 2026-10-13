@@ -1,0 +1,56 @@
+---
+import PricingTable from '../../components/PricingTable.astro';
+import App from '../../layouts/App.astro';
+import { formatMB, formatRetention, maxUsersFor, PLANS } from '../../lib/plans';
+import { requestCtx } from '../../server/deps';
+import { getUsage } from '../../server/usage';
+
+export const prerender = false;
+const user = Astro.locals.user!;
+const plan = PLANS[user.plan];
+const ctx = requestCtx(Astro.locals, Astro.request);
+const usage = await getUsage(ctx.env.DB, user.teamId, ctx.now);
+const seats = maxUsersFor(plan, user.seats);
+const rows = [
+  ['Notes this month', plan.limits.notesPerMonth === null ? `${usage.notes} (unlimited)` : `${usage.notes} of ${plan.limits.notesPerMonth}`],
+  ['Requests this month', plan.limits.requestsPerMonth === null ? `${usage.requests} (unlimited)` : `${usage.requests} of ${plan.limits.requestsPerMonth}`],
+  ['Attachments', `Up to ${formatMB(plan.limits.attachmentBytes)} each`],
+  ['Data retention', formatRetention(plan.limits.retentionDays)],
+  ['Seats', seats === null ? 'Unlimited' : String(seats)],
+];
+---
+
+<App title="Subscription">
+  <div class="mx-auto max-w-6xl space-y-8">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Subscription</h1>
+      <p class="text-sm text-muted">{user.teamName} is on the <strong class="text-ink">{plan.name}</strong> plan.</p>
+    </div>
+
+    <section class="card max-w-2xl" aria-labelledby="usage-title">
+      <h2 id="usage-title" class="text-lg font-bold">Your plan</h2>
+      <dl class="mt-4 divide-y divide-line">
+        {
+          rows.map(([label, value]) => (
+            <div class="flex justify-between gap-4 py-2.5 text-sm">
+              <dt class="text-muted">{label}</dt>
+              <dd class="font-semibold">{value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <p class="mt-4 text-xs text-muted">Monthly limits reset on the 1st of each month (UTC).</p>
+    </section>
+
+    <section aria-labelledby="plans-title">
+      <h2 id="plans-title" class="text-lg font-bold">Change plan</h2>
+      <p class="notice-warn mt-2 max-w-2xl">
+        Online card payments are coming soon. Until then, choose a plan below and send us the request: we’ll set it up
+        {user.role === 'owner' ? '' : ' with your team owner'} and invoice you.
+      </p>
+      <div class="mt-6">
+        <PricingTable currentPlan={user.plan} />
+      </div>
+    </section>
+  </div>
+</App>

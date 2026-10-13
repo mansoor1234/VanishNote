@@ -18,7 +18,8 @@ export default defineConfig({
   ],
   // Runs the production build on workerd with a local D1, exactly as it will be deployed.
   webServer: {
-    command: `npm run build && npm run db:migrate:local && npx wrangler dev --port ${PORT} --ip 127.0.0.1`,
+    // DEV_OUTBOX writes emails to D1 (readable at /api/dev/outbox) so tests can follow verification links.
+    command: `npm run build && npm run db:migrate:local && npx wrangler dev --port ${PORT} --ip 127.0.0.1 --var DEV_OUTBOX:true`,
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: !process.env['CI'],
     timeout: 180_000,

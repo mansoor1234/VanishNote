@@ -1,0 +1,152 @@
+---
+import App from '../../layouts/App.astro';
+import { maxUsersFor, PLANS } from '../../lib/plans';
+import { requestCtx } from '../../server/deps';
+import { pendingInvites, teamMembers } from '../../server/team';
+
+export const prerender = false;
+const user = Astro.locals.user!;
+const plan = PLANS[user.plan];
+const ctx = requestCtx(Astro.locals, Astro.request);
+const members = await teamMembers(ctx.env.DB, user.teamId);
+const invites = await pendingInvites(ctx.env.DB, user.teamId, ctx.now);
+const max = maxUsersFor(plan, user.seats);
+const used = members.length + invites.length;
+const isOwner = user.role === 'owner';
+const canInvite = isOwner && (max === null || used < max);
+---
+
+<App title="Team">
+  <div class="mx-auto max-w-3xl space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Team</h1>
+      <p class="text-sm text-muted">
+        {plan.name} plan · {max === null ? `${used} people, unlimited seats` : `${used} of ${max} ${max === 1 ? 'seat' : 'seats'} used`}
+        {plan.limits.sharedNotes ? ' · Everyone sees the team’s notes and activity' : ''}
+      </p>
+    </div>
+
+    {
+      isOwner && (
+        <section class="card" aria-labelledby="team-name-title">
+          <h2 id="team-name-title" class="text-lg font-bold">Team name</h2>
+          <form class="mt-4 flex flex-col gap-3 sm:flex-row" data-form="team-name" novalidate>
+            <label for="t-name" class="sr-only">Team name</label>
+            <input id="t-name" name="name" class="input" required maxlength="80" value={user.teamName} />
+            <button type="submit" class="btn-secondary shrink-0">Rename</button>
+          </form>
+          <p role="status" class="mt-2 text-sm" data-result />
+        </section>
+      )
+    }
+
+    <section class="card" aria-labelledby="members-title">
+      <h2 id="members-title" class="text-lg font-bold">Members</h2>
+      <ul class="mt-4 divide-y divide-line">
+        {
+          members.map((m) => (
+            <li class="flex flex-wrap items-center gap-3 py-3">
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold">
+                  {m.name} {m.id === user.id && <span class="font-normal text-muted">(you)</span>}
+                </p>
+                <p class="truncate text-sm text-muted">{m.email}</p>
+              </div>
+              <span class:list={['badge', m.role === 'owner' ? 'bg-accent-soft text-accent' : 'bg-surface-muted text-muted']}>
+                {m.role === 'owner' ? 'Owner' : 'Member'}
+              </span>
+              {isOwner && m.id !== user.id && (
+                <button type="button" class="btn-secondary min-h-9 py-1.5 text-sm text-danger" data-remove-member={m.id} data-name={m.name}>
+                  Remove
+                </button>
+              )}
+            </li>
+          ))
+        }
+        {
+          invites.map((i) => (
+            <li class="flex flex-wrap items-center gap-3 py-3">
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-semibold">{i.email}</p>
+                <p class="text-sm text-muted">Invitation sent</p>
+              </div>
+              <span class="badge bg-warn-soft text-warn">Pending</span>
+              {isOwner && (
+                <button type="button" class="btn-secondary min-h-9 py-1.5 text-sm" data-revoke-invite={i.email}>
+                  Revoke
+                </button>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+
+      {
+        isOwner &&
+          (canInvite ? (
+            <form class="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row" data-form="invite" novalidate>
+              <label for="t-invite" class="sr-only">Email address to invite</label>
+              <input id="t-invite" name="email" type="email" class="input" placeholder="colleague@company.com" required inputmode="email" />
+              <button type="submit" class="btn-primary shrink-0">Send invitation</button>
+            </form>
+          ) : (
+            <p class="notice-warn mt-4">
+              {user.plan === 'free'
+                ? 'The Free plan is for one person. '
+                : 'All your seats are in use. '}
+              <a class="link" href="/app/subscription">
+                {user.plan === 'free' ? 'Upgrade to invite your team' : 'Add seats or switch to Business'}
+              </a>
+              .
+            </p>
+          ))
+      }
+      <p role="status" class="mt-2 text-sm" data-team-status></p>
+    </section>
+
+    {
+      isOwner && (
+        <section class="card" aria-labelledby="brand-title">
+          <h2 id="brand-title" class="text-lg font-bold">Company branding</h2>
+          <p class="mt-1 text-sm text-muted">
+            Your name and logo replace ours on note pages, request forms and emails your team sends.
+          </p>
+          {plan.limits.branding ? (
+            <form class="mt-4 space-y-4" data-form="branding" novalidate>
+              <div>
+                <label for="t-brand" class="field-label">Company name</label>
+                <input id="t-brand" name="brandName" class="input" required maxlength="80" value={user.brandName ?? ''} />
+              </div>
+              <div>
+                <label for="t-logo" class="field-label">Logo</label>
+                {user.hasLogo && user.brandId && (
+                  <img src={`/brand/${user.brandId}/logo`} alt={`Current logo for ${user.brandName}`} class="mb-3 max-h-12 w-auto rounded bg-white p-1" />
+                )}
+                <input id="t-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" class="input" aria-describedby="t-logo-hint" />
+                <p id="t-logo-hint" class="field-hint">PNG, JPEG or WebP, up to 256 KB. A wide logo around 400 × 100 px works best.</p>
+              </div>
+              <p role="status" class="text-sm" data-result />
+              <div class="flex flex-wrap gap-2">
+                <button type="submit" class="btn-primary">Save branding</button>
+                {user.hasLogo && (
+                  <button type="button" class="btn-secondary" data-remove-logo>
+                    Remove logo
+                  </button>
+                )}
+              </div>
+            </form>
+          ) : (
+            <p class="notice-warn mt-4">
+              Branding is included in Standard and Business. <a class="link" href="/app/subscription">See plans</a>.
+            </p>
+          )}
+        </section>
+      )
+    }
+  </div>
+</App>
+
+<script>
+  import { initTeam } from '../../scripts/app/team';
+  initTeam();
+</script>

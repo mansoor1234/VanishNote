@@ -1,0 +1,21 @@
+---
+/** Header for pages a client sees from a branded team: their logo and name, no Vanishnote marketing. */
+import type { PublicBrand } from '../server/team';
+
+interface Props {
+  brand: PublicBrand;
+}
+const { brand } = Astro.props;
+---
+
+<header class="border-b border-line/70 bg-surface">
+  <div class="container-page flex min-h-16 items-center gap-3 py-3">
+    {
+      brand.hasLogo ? (
+        <img src={`/brand/${brand.brandId}/logo`} alt={brand.name} class="max-h-10 w-auto max-w-[60vw] object-contain" />
+      ) : (
+        <span class="text-lg font-bold">{brand.name}</span>
+      )
+    }
+  </div>
+</header>

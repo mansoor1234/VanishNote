@@ -23,6 +23,14 @@
   --warn: #8a4b00;
   --warn-soft: #fff4e0;
   --focus: #4338ca;
+  /* Dashboard sidebar: a deep dusk panel in both themes. */
+  --side-bg: #1f2135;
+  --side-ink: #ecebf5;
+  --side-muted: #a9acc4;
+  --side-line: #34374f;
+  --side-active: #2f3256;
+  --side-accent: #c7d2fe;
+  --side-warn: #fcd34d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -44,6 +52,9 @@
     --warn: #fcd34d;
     --warn-soft: #33270b;
     --focus: #c7d2fe;
+    --side-bg: #13141f;
+    --side-line: #262839;
+    --side-active: #23264a;
   }
 }
 
@@ -64,6 +75,13 @@
   --color-success-soft: var(--success-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-side-bg: var(--side-bg);
+  --color-side-ink: var(--side-ink);
+  --color-side-muted: var(--side-muted);
+  --color-side-line: var(--side-line);
+  --color-side-active: var(--side-active);
+  --color-side-accent: var(--side-accent);
+  --color-side-warn: var(--side-warn);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
 }
@@ -142,6 +160,54 @@
   }
   .notice-success {
     @apply notice border-success/40 bg-success-soft text-ink;
+  }
+  .dialog {
+    @apply m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-hidden rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl;
+  }
+  .dialog[open] {
+    @apply flex flex-col;
+  }
+  .dialog::backdrop {
+    background: rgb(15 16 24 / 0.6);
+  }
+  .dialog-header {
+    @apply flex items-center justify-between bg-side-bg px-5 py-4 text-side-ink sm:px-6;
+  }
+  .dialog-body {
+    @apply flex-1 overflow-y-auto bg-paper px-5 py-5 sm:px-6;
+  }
+  .dialog-footer {
+    @apply flex flex-col-reverse gap-3 border-t border-line bg-surface px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6;
+  }
+  .usage-bar {
+    @apply block h-1.5 w-full overflow-hidden rounded-full;
+    appearance: none;
+    background: var(--side-line);
+  }
+  .usage-bar::-webkit-progress-bar {
+    background: var(--side-line);
+  }
+  .usage-bar::-webkit-progress-value {
+    background: var(--side-accent);
+  }
+  .usage-bar::-moz-progress-bar {
+    background: var(--side-accent);
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap;
+  }
+  .segmented {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .segmented label {
+    @apply flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-muted;
+  }
+  .segmented input:checked + label {
+    @apply border-accent bg-accent-soft text-accent;
+  }
+  .segmented input:focus-visible + label {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
   }
   .prose-page {
     @apply max-w-3xl;

@@ -3,8 +3,17 @@
 End-to-end encrypted notes that self-destruct after they're read. Notes are encrypted in the
 browser, the key travels in the URL fragment, and the server only ever stores ciphertext.
 
-Stack: Astro 7 + `@astrojs/cloudflare` on Cloudflare Workers, D1, Cron Triggers, the Workers
-Rate Limiting binding, Tailwind CSS 4, the Web Crypto API, Resend, Vitest and Playwright.
+- **Quick notes** need no account (home page).
+- **Accounts** add a dashboard: notes with encrypted attachments, password hints, "shred after a set
+  time", emailing links, activity history, end-to-end encrypted **information requests**, teams,
+  company branding, and email + push notifications.
+- **Plans:** Free ($0), Standard ($5/user/month) and Business ($30/month flat), defined once in
+  [`src/lib/plans.ts`](src/lib/plans.ts) and enforced on the server. Card billing isn't wired up
+  yet (see [Changing a team's plan](#changing-a-teams-plan)).
+
+Stack: Astro 7 + `@astrojs/cloudflare` on Cloudflare Workers, D1, R2, Cron Triggers, the Workers
+Rate Limiting binding, Cloudflare Turnstile, Tailwind CSS 4, the Web Crypto API, Resend, Vitest
+and Playwright.
 
 See [SECURITY.md](SECURITY.md) for the threat model.
 
@@ -12,16 +21,18 @@ See [SECURITY.md](SECURITY.md) for the threat model.
 
 ```
 src/
-  lib/          crypto.ts (client crypto), encoding.ts, limits.ts, schema.ts (zod), site.ts
-  server/       api.ts (framework-agnostic handlers), db.ts (D1 SQL), http.ts (headers/helpers),
-                email.ts (Resend), deps.ts (binds real env)
-  pages/        static marketing pages + blog (prerendered); n/[id], d/[id], api/** (on demand)
-  scripts/      browser code for create / reveal / destroy
-  worker.ts     Worker entry: Astro fetch handler + cron `scheduled` purge
-  middleware.ts security headers for on-demand responses
+  lib/          crypto.ts (all client crypto), plans.ts, limits.ts, schema.ts (zod), encoding.ts, site.ts
+  server/       api.ts (anonymous notes), router.ts (account API route table), auth.ts, account-notes.ts,
+                requests.ts, team.ts, settings.ts, records.ts (activity), usage.ts (quotas),
+                webpush.ts (RFC 8291/8292), mail.ts + templates.ts, cleanup.ts (cron), db.ts, http.ts
+  pages/        marketing + blog + pricing (prerendered); n/, d/, r/, app/, auth pages, api/** (on demand)
+  layouts/      Base (site), App (dashboard), Auth, Prose
+  scripts/      browser code: create / reveal / respond / auth / app/* (dashboard)
+  worker.ts     Worker entry: Astro fetch handler + cron `scheduled` cleanup
+  middleware.ts session guard for /app, security headers for on-demand responses
 migrations/     D1 migrations
-public/_headers security headers for static pages
-tests/          unit/ (crypto, headers, email), integration/ (API + D1 race tests), e2e/ (Playwright)
+public/         _headers (static security headers), sw.js (push service worker), icons
+tests/          unit/, integration/ (real local D1 + R2), e2e/ (Playwright)
 ```
 
 ## Local setup
@@ -30,76 +41,100 @@ Requires Node ≥ 22.12.
 
 ```sh
 npm install
-cp .dev.vars.example .dev.vars        # optional: add RESEND_API_KEY to test emails
+cp .dev.vars.example .dev.vars        # optional secrets, see Configuration
 npm run db:migrate:local              # creates the local D1 schema in .wrangler/state
-npm run dev                           # Astro dev server on http://localhost:4321
-```
-
-To run the production build on workerd (the same runtime as production):
-
-```sh
 npm run build
-npm run preview                       # wrangler dev on http://localhost:8787
+npx wrangler dev --var DEV_OUTBOX:true   # production build on workerd, http://localhost:8787
 ```
 
-The strict CSP is only enforced by the production build. Astro's dev server injects inline
-scripts.
+With `DEV_OUTBOX=true`, emails (verification links, invitations, notifications) are written to a
+local table instead of being sent. Read them at
+`http://localhost:8787/api/dev/outbox?to=you@example.com`. The endpoint returns 404 unless that
+var is set **and** the request is to localhost; never set it in production.
+
+Locally, Turnstile uses Cloudflare's always-pass test key, and the server skips verification
+for localhost requests when `TURNSTILE_SECRET_KEY` is unset.
+
+`npm run dev` (Astro's dev server) also works for UI work, but the strict CSP is only enforced
+by the production build.
 
 ## Tests
 
 ```sh
-npm test                              # Vitest: crypto, validation, D1 race/expiry tests
+npm test                              # Vitest: crypto, web push, accounts, quotas, races, cleanup
 npx playwright install chromium       # first time only
-npm run test:e2e                      # builds, migrates local D1, runs wrangler dev, runs Playwright
-npm run check                         # astro check + tsc
+npm run test:e2e                      # builds, migrates, runs wrangler dev (with DEV_OUTBOX), runs Playwright
+npx tsc --noEmit                      # type check
 ```
 
-The integration tests use Wrangler's `getPlatformProxy` to get a real, in-memory D1 (SQLite in
-workerd), so the concurrent-read tests exercise the real database engine.
+The integration tests use Wrangler's `getPlatformProxy` for real, in-memory D1 and R2 bindings,
+so the race tests (concurrent reads, concurrent quota use, concurrent request responses)
+exercise the real database engine.
 
 ## Configuration
 
-| Name             | Where                       | Purpose                                                       |
-| ---------------- | --------------------------- | ------------------------------------------------------------- |
-| `APP_URL`        | `wrangler.toml` `[vars]` **and** build environment | Public origin, e.g. `https://vanishnote.app`. At build time it sets canonical URLs, the sitemap and robots.txt. At runtime it's the link in notification emails. |
-| `EMAIL_FROM`     | `wrangler.toml` `[vars]`    | Sender address on a domain verified in Resend                 |
-| `RESEND_API_KEY` | secret (`.dev.vars` locally) | Resend API key. If unset, read notifications are skipped.    |
+| Name                   | Where                          | Purpose |
+| ---------------------- | ------------------------------ | ------- |
+| `APP_URL`              | `wrangler.toml` **and** build env | Public origin, e.g. `https://vanishnote.app`. Build: canonical URLs, sitemap. Runtime: links in emails. |
+| `EMAIL_FROM`           | `wrangler.toml`                | Sender on a domain verified in Resend |
+| `RESEND_API_KEY`       | secret                         | Resend API key. Unset: no emails are sent (sign-up can't be verified). |
+| `TURNSTILE_SITE_KEY`   | `wrangler.toml`                | Turnstile site key (public). Ships with Cloudflare's test key. |
+| `TURNSTILE_SECRET_KEY` | secret                         | Turnstile secret. **Required in production**: without it, sign-up fails closed off localhost. |
+| `VAPID_PUBLIC_KEY`     | `wrangler.toml`                | Web Push public key. Empty: push is turned off (email still works). |
+| `VAPID_PRIVATE_KEY`    | secret                         | Web Push private key. Generate both with `node scripts/generate-vapid.mjs`. |
+| `VAPID_SUBJECT`        | `wrangler.toml`                | `mailto:` contact for push services |
+| `DEV_OUTBOX`           | `--var` locally only           | See Local setup |
 
-Rate limits are set in `wrangler.toml` (`CREATE_LIMITER` 10/min, `READ_LIMITER` 30/min per IP).
-Contact addresses shown on public pages are in `src/lib/site.ts`.
-
-After changing `wrangler.toml`, run `npm run cf-typegen` to regenerate `worker-configuration.d.ts`.
+Bindings in `wrangler.toml`: `DB` (D1), `FILES` (R2, encrypted attachments and logos),
+`CREATE_LIMITER` (10/min), `READ_LIMITER` (30/min), `AUTH_LIMITER` (10/min). Contact addresses on
+public pages are in `src/lib/site.ts`. After changing `wrangler.toml`, run `npm run cf-typegen`.
 
 ## Deploy
 
 ```sh
 npx wrangler login
 npx wrangler d1 create vanishnote     # copy the database_id into wrangler.toml
+npx wrangler r2 bucket create vanishnote-files
 npm run db:migrate:remote
 npx wrangler secret put RESEND_API_KEY
-# set APP_URL and EMAIL_FROM in wrangler.toml, then:
+npx wrangler secret put TURNSTILE_SECRET_KEY   # and set TURNSTILE_SITE_KEY in wrangler.toml
+node scripts/generate-vapid.mjs                # put the public key in wrangler.toml, then:
+npx wrangler secret put VAPID_PRIVATE_KEY
+# set APP_URL, EMAIL_FROM, VAPID_SUBJECT in wrangler.toml, then:
 APP_URL=https://your-domain npm run deploy
 ```
 
-`npm run deploy` runs `astro build` and `wrangler deploy`. The cron trigger (`0 * * * *`) and
-the rate limiters are created from `wrangler.toml`. Attach your custom domain in the Cloudflare
-dashboard, or add a `routes` entry.
+The hourly cron expires notes and requests, enforces each plan's retention on history, clears
+expired sessions and tokens, and deletes R2 files nothing can reach any more.
 
-Regenerate the social image after branding changes with `node scripts/generate-og.mjs`.
+Regenerate the social images and push icon after branding changes with
+`node scripts/generate-og.mjs`.
+
+## Changing a team's plan
+
+Billing isn't connected yet. Upgrade requests arrive through the dashboard's Contact form
+(subject "Upgrade to …"). Apply them with SQL:
+
+```sh
+npx wrangler d1 execute vanishnote --remote --command \
+  "UPDATE teams SET plan = 'standard', seats = 5 WHERE id = (SELECT team_id FROM users WHERE email = 'owner@company.com')"
+```
+
+`plan` is `free`, `standard` or `business`; `seats` only matters for Standard. Limits take effect
+on the next request. Hooking up Stripe later means setting the same two columns from a webhook.
 
 ## Notes on the spec
 
 - **"Hybrid" rendering.** Astro removed `output: 'hybrid'` in v5. The equivalent is
-  `output: 'static'` (prerender by default) with `export const prerender = false` on the note
-  pages and API routes, which is what this project uses.
-- **Multi-read consumption.** Instead of decrementing to 0 and then deleting, the final read
-  takes the `DELETE … RETURNING` branch directly. Both statements run in one D1 batch
-  (transaction), so a row never sits at `reads_left = 0`.
-- **Wrong passwords.** The server can't check passwords, so revealing a password-protected
-  note consumes it first. The ciphertext then stays in the tab's memory and the recipient can
-  retry the password as often as needed. Closing the tab before unlocking loses the note.
-- **CSP as a header.** Astro's built-in CSP emits a `<meta>` tag, which can't express
-  `frame-ancestors`. This app ships no inline scripts or styles, so a static header CSP is
-  enough (Markdown syntax highlighting is off because Shiki emits inline styles).
-- **Logging.** Workers observability is disabled because invocation logs record request
-  URLs, which contain note IDs.
+  `output: 'static'` with `export const prerender = false` on dynamic routes.
+- **Multi-read consumption.** The final read takes the `DELETE … RETURNING` branch directly, in
+  the same D1 batch (transaction) as the decrement branch, so a row never sits at `reads_left = 0`.
+- **Wrong passwords.** The server can't check note passwords, so revealing a password-protected
+  note consumes it first; the ciphertext stays in the tab and can be retried. Information
+  requests do better: the request password is checked locally *before* the response is fetched.
+- **CSP as a header.** No inline scripts or styles anywhere; Turnstile's origin is allowed only on
+  `/signup`, `/forgot` and `/verify`.
+- **Logging.** Workers observability is disabled because invocation logs record request URLs,
+  which contain note IDs.
+- **Anonymous notes vs plans.** Quick notes from the home page keep their original limits (up to
+  30 days, no attachments) and don't count toward account quotas.

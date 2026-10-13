@@ -1,0 +1,38 @@
+---
+/**
+ * Email confirmation. The token is in the URL fragment (never sent to the server on page load),
+ * and confirming takes a button press, so mail scanners that open links can't use it up.
+ */
+import Turnstile from '../components/Turnstile.astro';
+import Auth from '../layouts/Auth.astro';
+
+export const prerender = false;
+---
+
+<Auth title="Confirm your email" description="Confirm your email address for Vanishnote." heading="Confirm your email" turnstile>
+  <div data-verify hidden>
+    <p class="text-muted">Press the button to confirm your address and open your dashboard.</p>
+    <p class="notice-danger mt-4" role="alert" data-error hidden></p>
+    <button type="button" class="btn-primary mt-5 w-full" data-verify-button>Confirm my email</button>
+  </div>
+
+  <form class="space-y-4" data-auth-form="resend" novalidate>
+    <p class="text-sm text-muted" data-resend-intro>Didn’t get the email, or the link expired? We’ll send a new one.</p>
+    <div>
+      <label for="email" class="field-label">Email</label>
+      <input id="email" name="email" type="email" class="input" autocomplete="email" inputmode="email" required />
+    </div>
+    <Turnstile />
+    <p class="notice-danger" role="alert" data-error hidden></p>
+    <button type="submit" class="btn-secondary w-full">Send a new link</button>
+  </form>
+  <div data-done hidden>
+    <p class="notice-success" role="status">If that address has an unconfirmed account, a new link is on its way.</p>
+  </div>
+</Auth>
+
+<script>
+  import { initAuthForms, initVerify } from '../scripts/auth';
+  initAuthForms();
+  initVerify();
+</script>

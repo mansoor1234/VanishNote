@@ -1,0 +1,57 @@
+---
+/** Opens an answered information request: password first (checked locally), then the response. */
+---
+
+<dialog id="open-response" class="dialog max-w-2xl" aria-labelledby="open-response-title">
+  <div class="dialog-header">
+    <h2 id="open-response-title" class="text-lg font-bold">Open response</h2>
+    <button type="button" class="btn min-h-10 px-3 text-side-ink" data-close-dialog aria-label="Close">✕</button>
+  </div>
+
+  <form class="contents" data-state="unlock" novalidate>
+    <div class="dialog-body space-y-4">
+      <p class="font-semibold" data-response-title></p>
+      <p class="text-sm text-muted">
+        Enter the request password. We check it on this device first; the response is only fetched, and then shredded,
+        once it’s right.
+      </p>
+      <p class="rounded-xl bg-surface-muted p-3 text-sm" data-response-hint hidden></p>
+      <div>
+        <label for="or-password" class="field-label">Request password</label>
+        <input id="or-password" type="password" class="input" autocomplete="off" required />
+      </div>
+      <p class="notice-danger" role="alert" data-error hidden></p>
+    </div>
+    <div class="dialog-footer">
+      <span></span>
+      <div class="flex gap-2">
+        <button type="button" class="btn-secondary" data-close-dialog>Cancel</button>
+        <button type="submit" class="btn-primary" data-submit>Unlock</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="contents" data-state="shown" hidden>
+    <div class="dialog-body space-y-4">
+      <h3 class="text-lg font-bold" tabindex="-1" data-focus>Response</h3>
+      <p class="notice-warn">This response has been shredded from our servers. Copy or download what you need before closing.</p>
+      <div
+        id="or-content"
+        class="max-h-[50vh] overflow-auto rounded-xl border border-line bg-surface-muted p-4 font-mono text-[0.95rem] break-words whitespace-pre-wrap"
+        tabindex="0"
+        aria-label="Response contents"
+      >
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" class="btn-secondary" data-copy="or-content">Copy text</button>
+        <span class="sr-only" aria-live="polite" data-copy-status></span>
+        <button type="button" class="btn-primary" data-download hidden>Download attachment</button>
+      </div>
+      <p class="text-sm text-muted" data-download-status role="status"></p>
+    </div>
+    <div class="dialog-footer">
+      <span></span>
+      <button type="button" class="btn-primary" data-close-dialog>Done</button>
+    </div>
+  </div>
+</dialog>

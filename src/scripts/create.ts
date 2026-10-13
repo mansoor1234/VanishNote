@@ -1,20 +1,16 @@
 import { encryptNote, utf8ByteLength } from '../lib/crypto';
 import { MAX_NOTE_BYTES, type ExpiryOption } from '../lib/limits';
 import { createNote } from './api-client';
-import { $, cooldown, formatBytes, guardUnload, initCopyButtons, initShareButtons, showState } from './ui';
-
-export function initPasswordToggles(root: HTMLElement | Document = document): void {
-  for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-toggle-password]')) {
-    const input = document.getElementById(button.dataset['togglePassword'] ?? '') as HTMLInputElement | null;
-    if (!input) continue;
-    button.addEventListener('click', () => {
-      const show = input.type === 'password';
-      input.type = show ? 'text' : 'password';
-      button.textContent = show ? 'Hide' : 'Show';
-      button.setAttribute('aria-pressed', String(show));
-    });
-  }
-}
+import {
+  $,
+  cooldown,
+  formatBytes,
+  guardUnload,
+  initCopyButtons,
+  initPasswordToggles,
+  initShareButtons,
+  showState,
+} from './ui';
 
 export function initCreateForm(): void {
   const root = $('#composer');

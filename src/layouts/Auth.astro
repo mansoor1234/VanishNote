@@ -1,0 +1,33 @@
+---
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+  lead?: string;
+  /** Load the Cloudflare Turnstile script (CSP allows it on these paths only). */
+  turnstile?: boolean;
+  privatePage?: boolean;
+}
+const { title, description, heading, lead, turnstile = false, privatePage = true } = Astro.props;
+---
+
+<Base title={title} description={description} privatePage={privatePage}>
+  {turnstile && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer is:inline />}
+  <div class="container-page py-10 sm:py-16">
+    <section class="card mx-auto max-w-md" data-auth>
+      <span class="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-ink" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="10" width="16" height="11" rx="2.5"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+        </svg>
+      </span>
+      <h1 class="mt-4 text-2xl font-bold tracking-tight" tabindex="-1" data-focus>{heading}</h1>
+      {lead && <p class="mt-1 text-sm text-muted">{lead}</p>}
+      <div class="mt-6">
+        <slot />
+      </div>
+    </section>
+    <slot name="after" />
+  </div>
+</Base>

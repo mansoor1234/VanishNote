@@ -14,9 +14,60 @@ protects against and what it doesn't.
 | Note ID         | 128 random bits, base64url                                                |
 | Delete token    | 256 random bits; server stores only its SHA-256                           |
 
-Source: [`src/lib/crypto.ts`](src/lib/crypto.ts). Decrypting requires the link key, plus the
-password when one is set. Any wrong key, wrong password or tampered byte gives the same
-`DecryptionError`.
+| Attachments     | Sealed with the same note key (own IV); file name and type sealed separately. Ciphertext only in R2 |
+| Login           | Browser sends `authKey = HKDF(PBKDF2-SHA256(password, SHA-256("vanishnote/v1/login:"+email), 600k))`; server stores `SHA-256(salt ‖ authKey)` |
+| Requests        | ECDH P-256 key pair per request; private key (PKCS#8) sealed with `HKDF(PBKDF2(requestPassword, salt, 600k))`. Responder: ephemeral ECDH → `HKDF(shared, salt = epk ‖ pk, info="vanishnote/v1/request")` → AES-256-GCM |
+| Push            | RFC 8291 (aes128gcm) payload encryption to the browser, RFC 8292 VAPID (ES256) |
+
+Source: [`src/lib/crypto.ts`](src/lib/crypto.ts) and [`src/server/webpush.ts`](src/server/webpush.ts).
+Decrypting requires the link key, plus the password when one is set. Any wrong key, wrong
+password or tampered byte gives the same `DecryptionError`.
+
+## Accounts
+
+- **Passwords never leave the browser.** The server gets a 600k-iteration PBKDF2 derivation
+  (via HKDF), so a stolen database still costs an attacker 600k PBKDF2 rounds per password guess.
+  The server hashes that once more with a per-user salt. Workers caps PBKDF2 at 100k iterations
+  and has a tight CPU budget, so the slow step deliberately happens client-side.
+- **Sessions:** a random 256-bit token in an `HttpOnly; SameSite=Lax` cookie (`__Host-` prefix
+  and `Secure` over HTTPS). Only its SHA-256 is stored. 30-day lifetime. Password changes and
+  resets end every session.
+- **Email tokens** (verification, reset, invitation) are random 256-bit, stored hashed,
+  single-use (deleted in the statement that reads them) and short-lived. They travel in URL
+  fragments and are only used on a button press, so mail scanners can't consume them.
+- **No account enumeration** through sign-up, login, password reset or resend: the answer is the
+  same whether or not an address is registered.
+- **Turnstile** guards sign-up, password reset and resend-verification. Without a secret it fails
+  closed except on localhost.
+- Monthly quotas are enforced with a single conditional `INSERT … ON CONFLICT DO UPDATE … WHERE`,
+  so concurrent requests can't overshoot them (tested).
+
+## Information requests
+
+- The requester's browser makes a key pair and seals the private key with a request password
+  that never leaves the browser. We store the public key and the sealed private key.
+- The request link carries `SHA-256(publicKey)` in its fragment. The responder's browser refuses
+  to encrypt if the key the server hands it doesn't match. When *we* email the link, you trust us
+  not to swap both key and link; sharing the link yourself removes that trust.
+- Exactly one response is accepted (one conditional `UPDATE`, race-tested). Opening it is two
+  steps: the browser first unlocks the private key with the password (no side effects), and only
+  then fetches and deletes the response. A mistyped password never costs the response.
+
+## Notes sent from an account
+
+- **Emailing a link** means our server briefly handles the link key in order to build the email.
+  So we only allow it for **password-protected** notes: the key alone can't open them.
+- **Titles, password hints and request messages are plaintext metadata**, visible to us and to
+  teammates. The UI says so next to each field.
+- **Attachments** are downloaded with a single-use token issued when the note is opened (10
+  minutes). The encrypted file is queued for deletion as soon as its note is gone and deleted by
+  the cron after a 15-minute grace period.
+- **Activity history** stores event type, time and the country Cloudflare reports. It never
+  stores IP addresses. Failed password attempts are reported by the recipient's browser (we
+  can't detect them), so treat them as informative, not proof.
+- **Branding** uses a public brand ID in the link (`?b=`) rather than looking up the note, so
+  a note page still reveals nothing about whether the note exists. Logos are sniffed by content
+  (PNG, JPEG or WebP only; SVG refused), stored in R2, and served with `CSP: default-src 'none'; sandbox`.
 
 ## What the server can see
 
@@ -24,6 +75,8 @@ password when one is set. Any wrong key, wrong password or tampered byte gives t
 - Expiry time, views remaining, creation time
 - The creator's email address, if they asked for a read notification, until the row is deleted
 - SHA-256 of the delete token
+- For accounts: name, email, team, plan, note/request titles, password hints, request messages,
+  activity history, push subscription endpoints, and encrypted attachment sizes
 - The client IP for each request, used in memory for rate limiting and never stored or logged
 
 ## What the server never sees
@@ -53,8 +106,13 @@ password when one is set. Any wrong key, wrong password or tampered byte gives t
   `public/_headers` (static pages); a unit test keeps the two identical.
 - `Referrer-Policy: no-referrer`, HSTS, `nosniff`, `X-Frame-Options: DENY`, restrictive
   `Permissions-Policy`, COOP/CORP `same-origin`.
-- `/n/*`, `/d/*` and `/api/*`: `Cache-Control: no-store` and `X-Robots-Tag: noindex`.
-- No third-party scripts, fonts or analytics anywhere.
+- `/n/*`, `/d/*`, `/r/*`, `/app/*`, `/api/*` and token pages: `Cache-Control: no-store` and
+  `X-Robots-Tag: noindex`.
+- No third-party scripts, fonts or analytics, except Cloudflare Turnstile on `/signup`,
+  `/forgot` and `/verify` (CSP allows its origin on those paths only). Never on note pages.
+- Push is only sent to known push-service hosts (no SSRF through subscription endpoints).
+- Decrypted attachments are always saved as downloads (`application/octet-stream`), never
+  rendered, and file names are sanitised.
 - Decrypted text is set with `textContent` only (e2e-tested with an XSS payload).
 - Strict zod validation, unknown fields rejected, a 128 KB body cap, and JSON-only bodies.
   Astro's origin check returns 403 for cross-site form-style POSTs.

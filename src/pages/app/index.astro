@@ -1,0 +1,149 @@
+---
+import ResponseDialog from '../../components/app/ResponseDialog.astro';
+import App from '../../layouts/App.astro';
+import { PLANS } from '../../lib/plans';
+import { requestCtx } from '../../server/deps';
+import { listRecords } from '../../server/records';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const ctx = requestCtx(Astro.locals, Astro.request);
+const kindParam = Astro.url.searchParams.get('kind');
+const kind = kindParam === 'note' || kindParam === 'request' ? kindParam : null;
+const shared = PLANS[user.plan].limits.sharedNotes;
+const records = await listRecords(ctx.env.DB, user.teamId, user.id, shared, kind);
+
+const STATUS: Record<string, { label: string; tone: string }> = {
+  active: { label: 'Waiting to be read', tone: 'bg-accent-soft text-accent' },
+  shredded: { label: 'Read & shredded', tone: 'bg-success-soft text-success' },
+  expired: { label: 'Expired', tone: 'bg-surface-muted text-muted' },
+  destroyed: { label: 'Destroyed', tone: 'bg-surface-muted text-muted' },
+  pending: { label: 'Waiting for reply', tone: 'bg-accent-soft text-accent' },
+  completed: { label: 'Answered: open it', tone: 'bg-warn-soft text-warn' },
+  opened: { label: 'Opened & shredded', tone: 'bg-success-soft text-success' },
+};
+const tabs = [
+  { href: '/app', label: 'All', active: kind === null },
+  { href: '/app?kind=note', label: 'Notes', active: kind === 'note' },
+  { href: '/app?kind=request', label: 'Requests', active: kind === 'request' },
+];
+---
+
+<App title="Dashboard">
+  <div class="mx-auto max-w-5xl">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight" tabindex="-1">Notes & requests</h1>
+        <p class="text-sm text-muted">
+          {shared ? `Everything your team at ${user.teamName} has sent.` : 'Everything you’ve sent. Contents are never stored here, only what happened to them.'}
+        </p>
+      </div>
+      <nav aria-label="Filter">
+        <ul class="flex gap-1 rounded-xl border border-line bg-surface p-1 text-sm font-semibold">
+          {
+            tabs.map((tab) => (
+              <li>
+                <a
+                  href={tab.href}
+                  aria-current={tab.active ? 'page' : undefined}
+                  class:list={['inline-flex min-h-9 items-center rounded-lg px-3', tab.active ? 'bg-accent text-accent-ink' : 'text-muted hover:text-ink']}
+                >
+                  {tab.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+
+    {
+      records.length === 0 ? (
+        <section class="card mt-6 flex flex-col items-center py-12 text-center" aria-labelledby="empty-title">
+          <span class="flex size-14 items-center justify-center rounded-full bg-accent text-accent-ink" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          </span>
+          <h2 id="empty-title" class="mt-4 text-lg font-bold">
+            {kind === 'request' ? 'Your requests will appear here' : 'Your notes will appear here'}
+          </h2>
+          <p class="mt-2 max-w-md text-sm text-muted">
+            Send a password, key or private message that destroys itself once it’s read, or ask someone to send you
+            information securely.
+          </p>
+          <ul class="mt-5 flex flex-wrap justify-center gap-2 text-xs font-semibold text-muted">
+            <li class="rounded-full border border-line px-3 py-1.5">1. Write your note</li>
+            <li class="rounded-full border border-line px-3 py-1.5">2. Share the secure link</li>
+            <li class="rounded-full border border-line px-3 py-1.5">3. It shreds itself</li>
+          </ul>
+          <div class="mt-6 flex flex-wrap justify-center gap-3">
+            <button type="button" class="btn-primary" data-open-dialog="create-note">Create your first note</button>
+            <button type="button" class="btn-secondary" data-open-dialog="create-request">Request information</button>
+          </div>
+          <p class="mt-5 text-xs text-muted">🔒 Encrypted in your browser. We never see what you write.</p>
+        </section>
+      ) : (
+        <ul class="mt-6 space-y-3" data-records>
+          {records.map((r) => {
+            const status = STATUS[r.status] ?? { label: r.status, tone: 'bg-surface-muted text-muted' };
+            return (
+              <li class="rounded-2xl border border-line bg-surface" data-record={r.id} data-kind={r.kind} data-status={r.status}>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
+                  <span
+                    class:list={['flex size-10 shrink-0 items-center justify-center rounded-xl text-lg', r.kind === 'note' ? 'bg-accent-soft text-accent' : 'bg-warn-soft text-warn']}
+                    aria-hidden="true"
+                  >
+                    {r.kind === 'note' ? '✉' : '⇩'}
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-semibold">
+                      <span class="sr-only">{r.kind === 'note' ? 'Note: ' : 'Request: '}</span>
+                      {r.title}
+                      {r.has_file === 1 && <span class="ml-1 text-muted" title="Has an attachment">📎<span class="sr-only"> (has an attachment)</span></span>}
+                    </p>
+                    <p class="text-xs text-muted">
+                      {shared && r.author && <>{r.author} · </>}
+                      Created <time datetime={new Date(r.created_at).toISOString()} data-local-time>{new Date(r.created_at).toUTCString()}</time>
+                    </p>
+                  </div>
+                  <span class:list={['badge', status.tone]}>{status.label}</span>
+                  <div class="flex flex-wrap gap-2">
+                    {r.kind === 'request' && r.status === 'completed' && (
+                      <button type="button" class="btn-primary min-h-9 py-1.5 text-sm" data-open-response={r.id} data-title={r.title}>
+                        Open response
+                      </button>
+                    )}
+                    {r.kind === 'request' && r.status === 'pending' && (
+                      <button type="button" class="btn-secondary min-h-9 py-1.5 text-sm" data-copy-request={r.id}>
+                        Copy link
+                      </button>
+                    )}
+                    <button type="button" class="btn-secondary min-h-9 py-1.5 text-sm" data-activity={r.id} aria-expanded="false" aria-controls={`activity-${r.id}`}>
+                      Activity
+                    </button>
+                    {(r.user_id === user.id || user.role === 'owner') && (
+                      <button type="button" class="btn-secondary min-h-9 py-1.5 text-sm text-danger" data-delete={r.id} data-live={r.status === 'active' || r.status === 'pending' || r.status === 'completed' ? '1' : '0'}>
+                        {r.status === 'active' ? 'Destroy' : r.status === 'pending' ? 'Cancel' : 'Delete'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div id={`activity-${r.id}`} class="border-t border-line px-4 py-3 text-sm" hidden data-activity-panel />
+              </li>
+            );
+          })}
+        </ul>
+      )
+    }
+    <p class="mt-4 text-sm text-muted" role="status" data-list-status></p>
+  </div>
+  <ResponseDialog />
+</App>
+
+<script>
+  import { initDashboard } from '../../scripts/app/dashboard';
+  initDashboard();
+</script>

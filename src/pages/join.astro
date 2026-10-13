@@ -1,0 +1,41 @@
+---
+import Auth from '../layouts/Auth.astro';
+
+export const prerender = false;
+const user = Astro.locals.user;
+---
+
+<Auth title="Join a team" description="Accept a team invitation on Vanishnote." heading="You’ve been invited to a team">
+  <div data-join data-logged-in={user ? 'true' : 'false'}>
+    {
+      user ? (
+        <>
+          <p class="text-muted">
+            Joining moves your notes and history into the team. Teammates on the plan can see what you send.
+          </p>
+          <p class="mt-2 text-sm text-muted">
+            Signed in as <strong class="text-ink">{user.email}</strong>.
+          </p>
+          <p class="notice-danger mt-4" role="alert" data-error hidden />
+          <button type="button" class="btn-primary mt-5 w-full" data-join-button>
+            Join the team
+          </button>
+        </>
+      ) : (
+        <>
+          <p class="text-muted">Log in, or create a free account with the address the invitation was sent to. Then you’ll come back here to accept.</p>
+          <div class="mt-5 flex flex-col gap-3">
+            <a href="/login?next=%2Fjoin" class="btn-primary">Log in</a>
+            <a href="/signup" class="btn-secondary">Create an account</a>
+          </div>
+        </>
+      )
+    }
+  </div>
+  <p class="notice-warn" data-missing hidden>This invitation link is incomplete. Open the link from your email again.</p>
+</Auth>
+
+<script>
+  import { initJoin } from '../scripts/auth';
+  initJoin();
+</script>

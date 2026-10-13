@@ -149,6 +149,22 @@ export function cooldown(button: HTMLButtonElement, seconds: number): void {
   tick();
 }
 
+/** Show/Hide buttons for password fields: <button data-toggle-password="input-id">. */
+export function initPasswordToggles(root: HTMLElement | Document = document): void {
+  for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-toggle-password]')) {
+    if (button.dataset['toggleBound']) continue;
+    button.dataset['toggleBound'] = '1';
+    const input = document.getElementById(button.dataset['togglePassword'] ?? '') as HTMLInputElement | null;
+    if (!input) continue;
+    button.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.textContent = show ? 'Hide' : 'Show';
+      button.setAttribute('aria-pressed', String(show));
+    });
+  }
+}
+
 export function formatBytes(bytes: number): string {
   return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
 }

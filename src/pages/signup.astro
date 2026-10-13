@@ -1,0 +1,63 @@
+---
+import Turnstile from '../components/Turnstile.astro';
+import Auth from '../layouts/Auth.astro';
+import { isPlanId, PLANS } from '../lib/plans';
+
+export const prerender = false;
+const plan = Astro.url.searchParams.get('plan');
+const wanted = isPlanId(plan) && plan !== 'free' ? PLANS[plan] : null;
+---
+
+<Auth
+  title="Create your account"
+  description="Create a free Vanishnote account for encrypted notes with attachments, activity history and information requests."
+  heading="Create your account"
+  lead="Free forever. No card needed."
+  turnstile
+  privatePage={false}
+>
+  <form class="space-y-4" data-auth-form="signup" novalidate>
+    {wanted && (
+      <p class="notice-success">You can switch to {wanted.name} from the Subscription page once your account is ready.</p>
+    )}
+    <div>
+      <label for="name" class="field-label">Name</label>
+      <input id="name" name="name" class="input" autocomplete="name" required maxlength="80" />
+    </div>
+    <div>
+      <label for="email" class="field-label">Email</label>
+      <input id="email" name="email" type="email" class="input" autocomplete="email" inputmode="email" required />
+    </div>
+    <div>
+      <label for="password" class="field-label">Password</label>
+      <div class="flex gap-2">
+        <input id="password" name="password" type="password" class="input" autocomplete="new-password" required minlength="10" aria-describedby="password-help" />
+        <button type="button" class="btn-secondary shrink-0 px-3" data-toggle-password="password" aria-pressed="false">Show</button>
+      </div>
+      <p id="password-help" class="field-hint">At least 10 characters. It never leaves your browser.</p>
+    </div>
+    <div>
+      <label for="confirm" class="field-label">Confirm password</label>
+      <input id="confirm" name="confirm" type="password" class="input" autocomplete="new-password" required />
+    </div>
+    <Turnstile />
+    <p class="notice-danger" role="alert" data-error hidden></p>
+    <button type="submit" class="btn-primary w-full">Create account</button>
+    <p class="text-center text-xs text-muted">
+      By signing up you agree to our <a class="link" href="/terms">terms</a> and <a class="link" href="/privacy">privacy policy</a>.
+    </p>
+  </form>
+  <div data-done hidden>
+    <p class="notice-success" role="status">
+      <strong>Check your email.</strong> We sent a link to confirm your address. It expires in 24 hours.
+    </p>
+  </div>
+  <hr class="my-6 border-line" />
+  <p class="text-center text-sm text-muted">Already have an account? <a class="link" href="/login">Log in</a></p>
+  <p class="mt-2 text-center text-sm text-muted"><a class="link" href="/verify">Didn’t get the confirmation email?</a></p>
+</Auth>
+
+<script>
+  import { initAuthForms } from '../scripts/auth';
+  initAuthForms();
+</script>

@@ -1,0 +1,34 @@
+---
+import Turnstile from '../components/Turnstile.astro';
+import Auth from '../layouts/Auth.astro';
+
+export const prerender = false;
+---
+
+<Auth
+  title="Reset your password"
+  description="Reset your Vanishnote password."
+  heading="Reset your password"
+  lead="We’ll email you a link to choose a new one."
+  turnstile
+>
+  <form class="space-y-4" data-auth-form="forgot" novalidate>
+    <div>
+      <label for="email" class="field-label">Email</label>
+      <input id="email" name="email" type="email" class="input" autocomplete="email" inputmode="email" required />
+    </div>
+    <Turnstile />
+    <p class="notice-danger" role="alert" data-error hidden></p>
+    <button type="submit" class="btn-primary w-full">Email me a reset link</button>
+  </form>
+  <div data-done hidden>
+    <p class="notice-success" role="status">If that address has an account, a reset link is on its way. It expires in 1 hour.</p>
+  </div>
+  <hr class="my-6 border-line" />
+  <p class="text-center text-sm text-muted"><a class="link" href="/login">Back to log in</a></p>
+</Auth>
+
+<script>
+  import { initAuthForms } from '../scripts/auth';
+  initAuthForms();
+</script>

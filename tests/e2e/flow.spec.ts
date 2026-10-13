@@ -1,11 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
+import { useFreshClientIp } from './client-ip';
 
 const GONE = 'This note is gone';
 const GENERIC_404 = "This note doesn't exist or has already been read.";
 
 // The app guards against losing a link or note with beforeunload/confirm prompts.
 // Accept them by default so navigation in tests proceeds; tests that check a guard override this.
-test.beforeEach(({ page }) => {
+test.beforeEach(async ({ page, context }) => {
+  await useFreshClientIp(context);
   page.on('dialog', (dialog) => void dialog.accept().catch(() => {}));
 });
 

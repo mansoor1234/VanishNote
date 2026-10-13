@@ -4,6 +4,7 @@ import Logo from './Logo.astro';
 
 const links = [
   { href: '/how-it-works', label: 'How it works' },
+  { href: '/pricing', label: 'Pricing' },
   { href: '/security', label: 'Security' },
   { href: '/faq', label: 'FAQ' },
   { href: '/blog', label: 'Blog' },
@@ -35,6 +36,12 @@ const current = cleanPath(Astro.url.pathname);
             </li>
           ))
         }
+        <li>
+          <a href="/login" class="inline-flex min-h-11 items-center rounded px-1 text-muted hover:text-accent">Log in</a>
+        </li>
+        <li>
+          <a href="/signup" class="btn-primary px-4 py-1.5 text-sm">Sign up free</a>
+        </li>
       </ul>
     </nav>
   </div>

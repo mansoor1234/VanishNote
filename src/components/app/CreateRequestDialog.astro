@@ -1,0 +1,118 @@
+---
+import { formatMB, PLANS } from '../../lib/plans';
+
+const user = Astro.locals.user!;
+const plan = PLANS[user.plan];
+---
+
+<dialog id="create-request" class="dialog" aria-labelledby="create-request-title">
+  <div class="dialog-header">
+    <h2 id="create-request-title" class="text-lg font-bold">New information request</h2>
+    <button type="button" class="btn min-h-10 px-3 text-side-ink" data-close-dialog aria-label="Close">✕</button>
+  </div>
+
+  <form class="contents" data-state="form" novalidate>
+    <div class="dialog-body">
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="space-y-4">
+          <div>
+            <label for="cr-title" class="field-label">Title</label>
+            <input id="cr-title" name="title" class="input" required maxlength="120" placeholder="e.g. Bank details for payroll" />
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="cr-password" class="field-label">Request password</label>
+              <div class="flex gap-2">
+                <input id="cr-password" name="password" type="password" class="input" autocomplete="new-password" required minlength="8" aria-describedby="cr-password-hint" />
+                <button type="button" class="btn-secondary shrink-0 px-3" data-generate-password="cr-password" aria-label="Generate a strong password" title="Generate a strong password">⚄</button>
+              </div>
+            </div>
+            <div>
+              <label for="cr-confirm" class="field-label">Confirm password</label>
+              <div class="flex gap-2">
+                <input id="cr-confirm" name="confirm" type="password" class="input" autocomplete="new-password" required />
+                <button type="button" class="btn-secondary shrink-0 px-3" data-toggle-password-pair="cr-password cr-confirm" aria-pressed="false">Show</button>
+              </div>
+            </div>
+          </div>
+          <p id="cr-password-hint" class="field-hint -mt-2">
+            You’ll need it to open the response. It never leaves your browser, so we can’t reset it.
+          </p>
+          <div>
+            <label for="cr-hint" class="field-label">Password hint for you <span class="font-normal text-muted">(optional)</span></label>
+            <input id="cr-hint" name="passwordHint" class="input" maxlength="200" />
+          </div>
+          <div>
+            <label for="cr-recipient" class="field-label">Send the request to <span class="font-normal text-muted">(optional)</span></label>
+            <input id="cr-recipient" name="recipientEmail" type="email" class="input" inputmode="email" placeholder="client@company.com" />
+          </div>
+        </div>
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-1 flex-col">
+            <label for="cr-message" class="field-label">Message <span class="font-normal text-muted">(optional)</span></label>
+            <textarea
+              id="cr-message"
+              name="message"
+              class="input min-h-40 flex-1 resize-y"
+              maxlength="2000"
+              placeholder="What do you need? This appears in the email and on the response page, so don’t put private information here."
+            ></textarea>
+          </div>
+          <p class="rounded-xl border border-accent/30 bg-accent-soft p-4 text-sm">
+            Ask anyone for information, no account needed. They can type a reply and attach a file up to
+            {formatMB(plan.limits.attachmentBytes)}. It’s encrypted in their browser so only you, with the request password, can
+            open it.
+          </p>
+        </div>
+      </div>
+      <p class="notice-danger mt-5" role="alert" data-error hidden></p>
+    </div>
+    <div class="dialog-footer">
+      <p class="text-sm text-muted">
+        {
+          plan.limits.requestsPerMonth === null ? (
+            'Unlimited requests on your plan.'
+          ) : (
+            <>
+              {plan.limits.requestsPerMonth} requests a month on Free. <a class="link" href="/app/subscription">Upgrade for unlimited</a>
+            </>
+          )
+        }
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn-secondary" data-close-dialog>Close</button>
+        <button type="reset" class="btn-secondary">Reset</button>
+        <button type="submit" class="btn-primary" data-submit>Create request</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="contents" data-state="result" hidden>
+    <div class="dialog-body space-y-5">
+      <h3 class="text-xl font-bold" tabindex="-1" data-focus>Your request is ready</h3>
+      <p class="notice-success" data-emailed hidden></p>
+      <div>
+        <label for="cr-link" class="field-label">Request link</label>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <input id="cr-link" type="text" readonly class="input font-mono text-sm" />
+          <button type="button" class="btn-primary shrink-0" data-copy="cr-link">Copy link</button>
+          <button type="button" class="btn-secondary shrink-0" data-share="cr-link" hidden>Share link…</button>
+          <span class="sr-only" aria-live="polite" data-copy-status></span>
+        </div>
+        <p class="field-hint">This link doesn’t unlock anything: it only lets someone send you a reply. You can find it again in your dashboard.</p>
+      </div>
+      <p class="notice-warn">
+        <strong>Keep your request password safe.</strong> You’ll need it to open the response, and we can’t reset it.
+      </p>
+    </div>
+    <div class="dialog-footer">
+      <span></span>
+      <button type="button" class="btn-primary" data-done>Done</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  import { initCreateRequestDialog } from '../../scripts/app/create-request';
+  initCreateRequestDialog();
+</script>

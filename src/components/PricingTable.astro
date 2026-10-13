@@ -1,0 +1,119 @@
+---
+import { PLAN_ORDER, PLANS, PRICING_ROWS, type PlanId } from '../lib/plans';
+
+interface Props {
+  /** In the dashboard: mark the current plan and point upgrades at the contact form. */
+  currentPlan?: PlanId;
+}
+const { currentPlan } = Astro.props;
+const plans = PLAN_ORDER.map((id) => PLANS[id]);
+
+function cta(id: PlanId) {
+  if (currentPlan) {
+    if (id === currentPlan) return { label: 'Your current plan', href: null };
+    if (id === 'free') return { label: 'Downgrade', href: `/app/contact?subject=${encodeURIComponent('Downgrade to Free')}` };
+    return { label: `Upgrade to ${PLANS[id].name}`, href: `/app/contact?subject=${encodeURIComponent(`Upgrade to ${PLANS[id].name}`)}` };
+  }
+  return id === 'free'
+    ? { label: 'Sign up free', href: '/signup' }
+    : { label: `Start with ${PLANS[id].name}`, href: `/signup?plan=${id}` };
+}
+---
+
+<div class="pricing" data-pricing>
+  <div class="flex justify-center">
+    <div class="inline-flex rounded-xl border border-line bg-surface p-1" role="group" aria-label="Billing period">
+      <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" data-period="monthly" aria-pressed="true">Monthly</button>
+      <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" data-period="yearly" aria-pressed="false">
+        Yearly <span class="ml-1 rounded-full bg-success-soft px-2 py-0.5 text-xs text-success">Save 20%</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="mt-8 grid gap-6 lg:grid-cols-3 lg:items-stretch">
+    {
+      plans.map((plan) => {
+        const action = cta(plan.id);
+        const featured = Boolean(plan.highlight);
+        return (
+          <section
+            class:list={[
+              'relative flex flex-col rounded-2xl border bg-surface',
+              featured ? 'border-accent shadow-lg shadow-accent/10' : 'border-line',
+              currentPlan === plan.id && 'ring-2 ring-accent',
+            ]}
+            aria-labelledby={`plan-${plan.id}`}
+          >
+            {featured && (
+              <p class="rounded-t-2xl bg-accent py-1.5 text-center text-xs font-bold tracking-wider text-accent-ink uppercase">
+                {plan.highlight}
+              </p>
+            )}
+            <div class:list={['p-6', !featured && 'lg:pt-[3.25rem]']}>
+              <h3 id={`plan-${plan.id}`} class="text-xl font-bold">{plan.name}</h3>
+              <p class="text-sm text-muted">{plan.tagline}</p>
+              <p class="mt-5 flex items-baseline gap-1.5">
+                <span class="text-4xl font-extrabold tracking-tight">
+                  $<span data-monthly={plan.monthlyPrice} data-yearly={plan.yearlyMonthlyPrice}>{plan.monthlyPrice}</span>
+                </span>
+                <span class="text-sm text-muted">
+                  {plan.monthlyPrice === 0 ? '' : plan.priceUnit === 'per user' ? '/ user / month' : '/ month, total'}
+                </span>
+              </p>
+              <p class="mt-1 min-h-10 text-sm text-muted">
+                {
+                  plan.monthlyPrice === 0 ? (
+                    plan.priceNote
+                  ) : (
+                    <>
+                      <span data-period-note="monthly">{plan.priceNote}. Billed monthly.</span>
+                      <span data-period-note="yearly" hidden>
+                        Billed yearly at ${plan.yearlyMonthlyPrice * 12}
+                        {plan.priceUnit === 'per user' ? ' per user' : ''}.
+                      </span>
+                    </>
+                  )
+                }
+              </p>
+              {action.href ? (
+                <a href={action.href} class:list={['mt-5 w-full', featured ? 'btn-primary' : 'btn-secondary']}>
+                  {action.label}
+                </a>
+              ) : (
+                <p class="btn mt-5 w-full bg-accent-soft text-accent">{action.label}</p>
+              )}
+            </div>
+            <ul class="flex-1 border-t border-line text-sm">
+              {PRICING_ROWS.map((row) => {
+                const value = row.value(plan);
+                const included = value !== false;
+                return (
+                  <li class:list={['flex items-start gap-3 border-b border-line/60 px-6 py-3 last:border-b-0', !included && 'text-muted']}>
+                    <span aria-hidden="true" class:list={['mt-px w-4 shrink-0 text-center font-bold', included ? 'text-accent' : 'text-muted/70']}>
+                      {included ? '✓' : '–'}
+                    </span>
+                    <span>
+                      {typeof value === 'string' ? (
+                        <>
+                          <span class="font-medium">{row.label}:</span> {value}
+                        </>
+                      ) : (
+                        row.label
+                      )}
+                      {!included && <span class="sr-only"> (not included)</span>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })
+    }
+  </div>
+</div>
+
+<script>
+  import { initPricingToggle } from '../scripts/pricing';
+  initPricingToggle();
+</script>

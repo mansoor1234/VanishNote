@@ -1,0 +1,7 @@
+---
+import { env } from 'cloudflare:workers';
+// Implicit rendering: the script fills a hidden "cf-turnstile-response" input inside the form.
+const siteKey = env.TURNSTILE_SITE_KEY;
+---
+
+{siteKey && <div class="cf-turnstile min-h-[65px]" data-sitekey={siteKey} data-theme="auto" data-size="flexible"></div>}

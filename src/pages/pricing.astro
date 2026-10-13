@@ -1,0 +1,138 @@
+---
+import PricingTable from '../components/PricingTable.astro';
+import Base from '../layouts/Base.astro';
+import { CONTACT_EMAIL } from '../lib/site';
+import { formatMB, formatRetention, PLAN_ORDER, PLANS } from '../lib/plans';
+
+const site = Astro.site!;
+const free = PLANS.free.limits;
+const premium = PLANS.business.limits;
+
+const features = [
+  {
+    title: 'Information requests',
+    body: 'Need a passport number, a bank detail or a signed document from a client? Send them a secure request. They don’t need an account. What they type, and any file they attach, is encrypted in their browser so only you can open it.',
+  },
+  {
+    title: 'Activity history',
+    body: 'See when each note was created, emailed, opened and downloaded, from which country, and every failed password attempt. On paid plans the history stays after the note is shredded, until your retention period ends.',
+  },
+  {
+    title: 'Shared team notes',
+    body: 'Everyone on the plan sees the team’s notes and requests: who sent what, when, and whether the client has opened it yet. No more “did they get it?” messages.',
+  },
+  {
+    title: 'Company branded notes',
+    body: 'Add your company name and logo. Note pages, request forms and emails show your brand instead of ours, in a clean business look your clients will recognise.',
+  },
+  {
+    title: 'Bigger encrypted attachments',
+    body: `Attach files up to ${formatMB(premium.attachmentBytes)} on paid plans (${formatMB(free.attachmentBytes)} on Free). Files are encrypted in your browser with the same key as the note, and shredded with it.`,
+  },
+  {
+    title: 'Unlimited notes and requests',
+    body: `Free includes ${free.notesPerMonth} notes and ${free.requestsPerMonth} information requests a month. Paid plans have no monthly limits.`,
+  },
+];
+
+const faqs = [
+  {
+    q: 'Do I need an account to send a note?',
+    a: 'No. You can send a quick encrypted note from the home page without signing up. An account adds a dashboard, activity history, attachments, information requests and read notifications.',
+  },
+  {
+    q: 'What does data retention mean?',
+    a: `It’s the longest we keep anything for your team: unread notes, unanswered requests, and activity history. Free keeps data for ${formatRetention(free.retentionDays)}, Standard for ${formatRetention(PLANS.standard.limits.retentionDays)} and Business for ${formatRetention(premium.retentionDays)}. Notes are still destroyed as soon as they’re read.`,
+  },
+  {
+    q: 'How is Standard billed?',
+    a: 'Standard is priced per person on your team. Business is one flat price for your whole company, however many people use it.',
+  },
+  {
+    q: 'Can I change or cancel my plan?',
+    a: 'Yes, at any time: ask from the Subscription page in your dashboard. If you move to a smaller plan, existing notes keep working until they expire.',
+  },
+  {
+    q: 'Can you read my notes on a paid plan?',
+    a: 'No. Every plan uses the same end-to-end encryption. Paying unlocks features, not access to your data.',
+  },
+];
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Vanishnote',
+    url: site.href,
+    applicationCategory: 'SecurityApplication',
+    operatingSystem: 'Any (web browser)',
+    offers: PLAN_ORDER.map((id) => ({
+      '@type': 'Offer',
+      name: PLANS[id].name,
+      price: String(PLANS[id].monthlyPrice),
+      priceCurrency: 'USD',
+      description: PLANS[id].tagline,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  },
+];
+---
+
+<Base
+  title="Pricing"
+  description="Vanishnote is free for one person. Standard is $5 per user a month; Business is $30 a month for unlimited users. End-to-end encryption on every plan."
+  jsonLd={jsonLd}
+>
+  <div class="container-page py-10 sm:py-14">
+    <div class="mx-auto max-w-2xl text-center">
+      <h1 class="text-3xl font-extrabold tracking-tight text-balance sm:text-5xl">Simple plans. The same encryption on all of them.</h1>
+      <p class="mt-4 text-lg text-muted">
+        Start free. Upgrade when your team needs shared notes, information requests without limits, and your own branding.
+      </p>
+    </div>
+
+    <div class="mt-10">
+      <PricingTable />
+    </div>
+    <p class="mt-8 text-center text-sm text-muted">
+      Questions about a larger deployment? <a class="link" href={`mailto:${CONTACT_EMAIL}`}>Talk to us</a>.
+    </p>
+
+    <section class="mt-20" aria-labelledby="features-title">
+      <h2 id="features-title" class="text-2xl font-bold tracking-tight sm:text-3xl">What you get with a paid plan</h2>
+      <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          features.map((f) => (
+            <div class="rounded-2xl border border-line p-6">
+              <h3 class="font-semibold">{f.title}</h3>
+              <p class="mt-1 text-muted">{f.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="mt-20 max-w-3xl" aria-labelledby="pricing-faq">
+      <h2 id="pricing-faq" class="text-2xl font-bold tracking-tight sm:text-3xl">Plans and billing questions</h2>
+      <div class="mt-6 space-y-3">
+        {
+          faqs.map(({ q, a }) => (
+            <details class="group rounded-xl border border-line bg-surface p-4">
+              <summary class="cursor-pointer list-none font-semibold">
+                <span class="flex items-start justify-between gap-4">
+                  {q}
+                  <span aria-hidden="true" class="text-muted transition-transform group-open:rotate-45">+</span>
+                </span>
+              </summary>
+              <p class="mt-3">{a}</p>
+            </details>
+          ))
+        }
+      </div>
+    </section>
+  </div>
+</Base>

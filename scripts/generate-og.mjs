@@ -39,4 +39,13 @@ for (const [file, html] of Object.entries(cards)) {
   await tab.screenshot({ path: fileURLToPath(new URL(`../public/${file}`, import.meta.url)) });
   console.log(`wrote public/${file}`);
 }
+// App icon for push notifications.
+const icon = await browser.newPage({ viewport: { width: 192, height: 192 } });
+await icon.setContent(
+  `<body style="margin:0;width:192px;height:192px;display:flex;align-items:center;justify-content:center;background:#4338ca;color:#fff">${mark
+    .replace('width="132" height="132"', 'width="128" height="128"')
+    .replace(/currentColor/g, '#ffffff')}</body>`,
+);
+await icon.screenshot({ path: fileURLToPath(new URL('../public/icon-192.png', import.meta.url)) });
+console.log('wrote public/icon-192.png');
 await browser.close();

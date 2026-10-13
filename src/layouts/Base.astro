@@ -13,9 +13,13 @@ interface Props {
   /** Social card image path. Private pages only get one when given explicitly (it must reveal nothing). */
   ogImage?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** 'site': marketing header and footer. 'none': the page brings its own (dashboard, branded notes). */
+  chrome?: 'site' | 'none';
+  /** Overrides the "· Vanishnote" title suffix (branded pages). */
+  titleSuffix?: string;
 }
 
-const { title, description, privatePage = false, ogType = 'website', jsonLd } = Astro.props;
+const { title, description, privatePage = false, ogType = 'website', jsonLd, chrome = 'site', titleSuffix } = Astro.props;
 const site = Astro.site ?? new URL('https://vanishnote.example');
 const canonical = new URL(cleanPath(Astro.url.pathname), site).href;
 const ogImagePath = Astro.props.ogImage ?? (privatePage ? undefined : '/og.png');
@@ -23,7 +27,8 @@ const ogImage = ogImagePath ? new URL(ogImagePath, site).href : undefined;
 const ogImageAlt = privatePage
   ? 'A private note that opens once, sent with Vanishnote'
   : 'Vanishnote — encrypted notes that disappear after reading';
-const fullTitle = title.includes('Vanishnote') ? title : `${title} · Vanishnote`;
+const suffix = titleSuffix ?? 'Vanishnote';
+const fullTitle = title.includes(suffix) ? title : `${title} · ${suffix}`;
 // JSON-LD is a data block, not executable script, so it is allowed under script-src 'self'.
 // Escape "<" so content can never close the script element.
 const ldJson = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefined;
@@ -79,10 +84,18 @@ const ldJson = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefi
       class="sr-only z-50 rounded-lg bg-accent px-4 py-2 font-semibold text-accent-ink focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
       >Skip to content</a
     >
-    <Header />
-    <main id="main" class="flex-1" tabindex="-1">
-      <slot />
-    </main>
-    <Footer />
+    {
+      chrome === 'site' ? (
+        <>
+          <Header />
+          <main id="main" class="flex-1" tabindex="-1">
+            <slot />
+          </main>
+          <Footer />
+        </>
+      ) : (
+        <slot />
+      )
+    }
   </body>
 </html>

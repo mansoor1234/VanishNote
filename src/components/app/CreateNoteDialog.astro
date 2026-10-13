@@ -1,0 +1,166 @@
+---
+import { MAX_NOTE_BYTES, MAX_READS, TIMED_EXPIRY_DAYS, TIMED_EXPIRY_LABELS, type TimedExpiry } from '../../lib/limits';
+import { formatMB, PLANS } from '../../lib/plans';
+
+const user = Astro.locals.user!;
+const plan = PLANS[user.plan];
+const timed = (Object.keys(TIMED_EXPIRY_DAYS) as TimedExpiry[]).map((key) => ({
+  key,
+  label: TIMED_EXPIRY_LABELS[key],
+  allowed: TIMED_EXPIRY_DAYS[key] <= plan.limits.retentionDays,
+}));
+---
+
+<dialog id="create-note" class="dialog" aria-labelledby="create-note-title" data-attachment-limit={plan.limits.attachmentBytes}>
+  <div class="dialog-header">
+    <h2 id="create-note-title" class="text-lg font-bold">New note</h2>
+    <button type="button" class="btn min-h-10 px-3 text-side-ink" data-close-dialog aria-label="Close">✕</button>
+  </div>
+
+  <form class="contents" data-state="form" novalidate>
+    <div class="dialog-body">
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="space-y-4">
+          <div>
+            <label for="cn-title" class="field-label">Title</label>
+            <input id="cn-title" name="title" class="input" required maxlength="120" placeholder="e.g. Server login for Acme" aria-describedby="cn-title-hint" />
+            <p id="cn-title-hint" class="field-hint">Shown in your dashboard and emails. Keep secrets out of it.</p>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="cn-password" class="field-label">Password <span class="font-normal text-muted">(optional)</span></label>
+              <div class="flex gap-2">
+                <input id="cn-password" name="password" type="password" class="input" autocomplete="new-password" />
+                <button type="button" class="btn-secondary shrink-0 px-3" data-generate-password="cn-password" aria-label="Generate a strong password" title="Generate a strong password">⚄</button>
+              </div>
+            </div>
+            <div>
+              <label for="cn-confirm" class="field-label">Confirm password</label>
+              <div class="flex gap-2">
+                <input id="cn-confirm" name="confirm" type="password" class="input" autocomplete="new-password" />
+                <button type="button" class="btn-secondary shrink-0 px-3" data-toggle-password-pair="cn-password cn-confirm" aria-pressed="false">Show</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label for="cn-hint" class="field-label">Password hint <span class="font-normal text-muted">(optional)</span></label>
+            <input id="cn-hint" name="passwordHint" class="input" maxlength="200" placeholder="e.g. Same as the sales dashboard" aria-describedby="cn-hint-help" disabled />
+            <p id="cn-hint-help" class="field-hint">Shown to the recipient before they unlock the note. Never the password itself.</p>
+          </div>
+
+          <fieldset>
+            <legend class="field-label">Shred this note</legend>
+            <div class="segmented">
+              <input type="radio" id="cn-mode-read" name="mode" value="read" class="sr-only" checked />
+              <label for="cn-mode-read">After it’s read</label>
+              <input type="radio" id="cn-mode-time" name="mode" value="time" class="sr-only" />
+              <label for="cn-mode-time">After a set time</label>
+            </div>
+            <div class="mt-3" data-mode-panel="read">
+              <label for="cn-reads" class="field-label">Destroy after</label>
+              <select id="cn-reads" name="maxReads" class="input">
+                {Array.from({ length: MAX_READS }, (_, i) => i + 1).map((n) => <option value={n}>{n === 1 ? '1 view' : `${n} views`}</option>)}
+              </select>
+              <p class="field-hint">Unread notes are deleted after {plan.limits.retentionDays} days.</p>
+            </div>
+            <div class="mt-3" data-mode-panel="time" hidden>
+              <label for="cn-expiry" class="field-label">Readable until</label>
+              <select id="cn-expiry" name="expiresIn" class="input" aria-describedby="cn-expiry-hint">
+                {
+                  timed.map((t) => (
+                    <option value={t.key} disabled={!t.allowed} selected={t.key === '1d'}>
+                      {t.label} from now{t.allowed ? '' : ' (upgrade)'}
+                    </option>
+                  ))
+                }
+              </select>
+              <p id="cn-expiry-hint" class="field-hint">Anyone with the link can open it until then. Downloading an attachment shreds it.</p>
+            </div>
+          </fieldset>
+
+          <div>
+            <label for="cn-recipient" class="field-label">Email the link to <span class="font-normal text-muted">(optional)</span></label>
+            <input id="cn-recipient" name="recipientEmail" type="email" class="input" inputmode="email" placeholder="client@company.com" aria-describedby="cn-recipient-hint" />
+            <p id="cn-recipient-hint" class="field-hint">Needs a password. Send the password to them a different way.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-1 flex-col">
+            <label for="cn-text" class="field-label">Note contents</label>
+            <textarea
+              id="cn-text"
+              name="text"
+              class="input min-h-48 flex-1 resize-y"
+              required
+              placeholder="Type the private information here. It’s encrypted before it leaves your browser."
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              aria-describedby="cn-size"></textarea>
+            <p id="cn-size" class="field-hint"><span data-size>0 B</span> of {MAX_NOTE_BYTES / 1024} KB</p>
+          </div>
+
+          <div>
+            <p class="field-label" id="cn-file-label">Attachment <span class="font-normal text-muted">(optional)</span></p>
+            <label
+              class="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line bg-surface p-4 text-center text-sm text-muted hover:border-accent"
+              data-dropzone
+            >
+              <input type="file" name="file" class="sr-only" aria-labelledby="cn-file-label" data-file-input />
+              <span class="font-semibold text-ink" data-file-name>Drop a file here, or click to choose</span>
+              <span data-file-detail>Encrypted in your browser and shredded with the note. Up to {formatMB(plan.limits.attachmentBytes)}.</span>
+            </label>
+            <button type="button" class="link mt-2 text-sm" data-file-clear hidden>Remove attachment</button>
+          </div>
+        </div>
+      </div>
+      <p class="notice-danger mt-5" role="alert" data-error hidden></p>
+    </div>
+
+    <div class="dialog-footer">
+      <p class="text-sm text-muted">
+        Files up to <strong class="text-ink">{formatMB(plan.limits.attachmentBytes)}</strong>.{' '}
+        {user.plan === 'free' && <a class="link" href="/app/subscription">Upgrade for larger files</a>}
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn-secondary" data-close-dialog>Close</button>
+        <button type="reset" class="btn-secondary">Reset</button>
+        <button type="submit" class="btn-primary" data-submit>Create note</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="contents" data-state="result" hidden>
+    <div class="dialog-body space-y-5">
+      <h3 class="text-xl font-bold" tabindex="-1" data-focus>Your note is ready</h3>
+      <p class="notice-warn">
+        <strong>Copy or share this link now.</strong> We can’t show it again: the key is inside the link and never reached us.
+      </p>
+      <p class="notice-success" data-emailed hidden></p>
+      <div>
+        <label for="cn-link" class="field-label">Link</label>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <input id="cn-link" type="text" readonly class="input font-mono text-sm" />
+          <button type="button" class="btn-primary shrink-0" data-copy="cn-link">Copy link</button>
+          <button type="button" class="btn-secondary shrink-0" data-share="cn-link" hidden>Share link…</button>
+          <span class="sr-only" aria-live="polite" data-copy-status></span>
+        </div>
+      </div>
+      <p class="text-sm text-muted" data-password-tip hidden>
+        Send the password through a different channel than the link, for example by phone or another messaging app.
+      </p>
+    </div>
+    <div class="dialog-footer">
+      <span></span>
+      <button type="button" class="btn-primary" data-done>Done</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  import { initCreateNoteDialog } from '../../scripts/app/create-note';
+  initCreateNoteDialog();
+</script>

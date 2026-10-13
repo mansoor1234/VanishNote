@@ -1,0 +1,186 @@
+---
+/** Dashboard shell: sidebar (navigation, usage, plan), top bar with the create actions, dialogs. */
+import CreateNoteDialog from '../components/app/CreateNoteDialog.astro';
+import CreateRequestDialog from '../components/app/CreateRequestDialog.astro';
+import Logo from '../components/Logo.astro';
+import { PLANS } from '../lib/plans';
+import { requestCtx } from '../server/deps';
+import { getUsage } from '../server/usage';
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const user = Astro.locals.user!;
+const plan = PLANS[user.plan];
+const ctx = requestCtx(Astro.locals, Astro.request);
+const usage = await getUsage(ctx.env.DB, user.teamId, ctx.now);
+const initials = user.name
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0]!.toUpperCase())
+  .join('');
+
+const nav = [
+  { href: '/app', label: 'Notes & requests', icon: 'list' },
+  { href: '/app/team', label: 'Team', icon: 'team' },
+  { href: '/app/settings', label: 'Settings', icon: 'gear' },
+  { href: '/app/subscription', label: 'Subscription', icon: 'card' },
+  { href: '/app/contact', label: 'Contact', icon: 'mail' },
+] as const;
+const current = Astro.url.pathname.replace(/\/$/, '') || '/app';
+
+const icons: Record<string, string> = {
+  list: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01',
+  team: 'M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M20 19v-1.5a3.5 3.5 0 0 0-2.5-3.35M15.5 3.65a3.5 3.5 0 0 1 0 6.7',
+  gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+  card: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18M7 15h3',
+  mail: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM3 6l9 7 9-7',
+  logout: 'M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3',
+};
+
+function meter(used: number, limit: number | null) {
+  if (limit === null) return null;
+  const left = Math.max(0, limit - used);
+  return { left, pct: Math.min(100, Math.round((used / limit) * 100)) };
+}
+const notesMeter = meter(usage.notes, plan.limits.notesPerMonth);
+const requestsMeter = meter(usage.requests, plan.limits.requestsPerMonth);
+---
+
+<Base title={title} description="Your Vanishnote dashboard." privatePage chrome="none">
+  <a
+    href="#main"
+    class="sr-only z-50 rounded-lg bg-accent px-4 py-2 font-semibold text-accent-ink focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+    >Skip to content</a
+  >
+  <div class="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
+    <aside class="bg-side-bg text-side-ink lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col" data-sidebar>
+      <div class="flex items-center justify-between px-4 py-3 lg:px-5 lg:pt-5">
+        <a href="/app" class="flex min-h-11 items-center gap-2 rounded-lg" aria-label="Vanishnote dashboard">
+          <Logo class="text-side-accent" />
+          <span class="text-lg font-bold tracking-tight">vanish<span class="text-side-muted">note</span></span>
+        </a>
+        <button
+          type="button"
+          class="btn min-h-11 border border-side-line px-3 text-sm lg:hidden"
+          aria-expanded="false"
+          aria-controls="sidebar-panel"
+          data-menu-toggle
+        >
+          Menu
+        </button>
+      </div>
+
+      <div id="sidebar-panel" class="hidden flex-1 flex-col lg:flex" data-sidebar-panel>
+        <div class="flex flex-col items-center gap-2 border-b border-side-line px-5 pt-3 pb-5 text-center">
+          <span
+            class="flex size-16 items-center justify-center rounded-full border-2 border-side-accent/60 bg-side-active text-xl font-bold text-side-accent"
+            aria-hidden="true">{initials}</span
+          >
+          <p class="font-semibold">{user.name}</p>
+          <p class="text-xs text-side-muted">{user.teamName} · {plan.name}</p>
+        </div>
+
+        <nav aria-label="Dashboard" class="px-3 py-4">
+          <ul class="space-y-1">
+            {
+              nav.map((item) => {
+                const active = current === item.href;
+                return (
+                  <li>
+                    <a
+                      href={item.href}
+                      aria-current={active ? 'page' : undefined}
+                      class:list={[
+                        'flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium',
+                        active ? 'bg-side-active text-side-ink' : 'text-side-muted hover:bg-side-active/60 hover:text-side-ink',
+                      ]}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d={icons[item.icon]} />
+                      </svg>
+                      {item.label}
+                    </a>
+                  </li>
+                );
+              })
+            }
+            <li>
+              <button
+                type="button"
+                class="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-side-muted hover:bg-side-active/60 hover:text-side-ink"
+                data-logout
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d={icons['logout']} />
+                </svg>
+                Log out
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="mt-auto p-3">
+          <div class="rounded-xl bg-side-active/70 p-4 text-xs">
+            {
+              notesMeter || requestsMeter ? (
+                <>
+                  {notesMeter && (
+                    <div class="mb-3">
+                      <p class="flex justify-between font-semibold">
+                        <span>Notes this month</span>
+                        <span>{notesMeter.left} left</span>
+                      </p>
+                      <progress class="usage-bar mt-1.5" max="100" value={notesMeter.pct} aria-label={`${notesMeter.left} notes left this month`} />
+                    </div>
+                  )}
+                  {requestsMeter && (
+                    <div class="mb-3">
+                      <p class="flex justify-between font-semibold">
+                        <span>Requests this month</span>
+                        <span>{requestsMeter.left} left</span>
+                      </p>
+                      <progress class="usage-bar mt-1.5" max="100" value={requestsMeter.pct} aria-label={`${requestsMeter.left} requests left this month`} />
+                    </div>
+                  )}
+                  <a href="/app/subscription" class="inline-flex min-h-8 items-center gap-1 font-semibold text-side-warn">
+                    <span aria-hidden="true">★</span> Upgrade for unlimited
+                  </a>
+                </>
+              ) : (
+                <p class="text-side-muted">
+                  <span class="font-semibold text-side-ink">{plan.name} plan.</span> Unlimited notes and requests.
+                </p>
+              )
+            }
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="flex min-w-0 flex-col bg-paper">
+      <div class="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-4 py-3 sm:px-6">
+        <button type="button" class="btn-primary" data-open-dialog="create-note">
+          <span aria-hidden="true">＋</span> Create note
+        </button>
+        <button type="button" class="btn-secondary" data-open-dialog="create-request">
+          <span aria-hidden="true">⇩</span> Create request
+        </button>
+      </div>
+      <main id="main" class="flex-1 px-4 py-6 sm:px-6 sm:py-8" tabindex="-1">
+        <slot />
+      </main>
+    </div>
+  </div>
+
+  <CreateNoteDialog />
+  <CreateRequestDialog />
+</Base>
+
+<script>
+  import { initAppShell } from '../scripts/app/shell';
+  initAppShell();
+</script>

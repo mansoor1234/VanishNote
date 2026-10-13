@@ -4,19 +4,30 @@ import type { ErrorResponse } from '../lib/schema';
  * Security headers applied to every response the Worker renders. Static pages get the
  * same set from public/_headers. Keep the two in sync (tests/unit/headers.test.ts checks).
  */
-export const CONTENT_SECURITY_POLICY = [
-  "default-src 'none'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' data:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "manifest-src 'self'",
-  "base-uri 'none'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  'upgrade-insecure-requests',
-].join('; ');
+function csp(extra: { script?: string; frame?: string; connect?: string } = {}): string {
+  return [
+    "default-src 'none'",
+    `script-src 'self'${extra.script ? ` ${extra.script}` : ''}`,
+    "style-src 'self'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    `connect-src 'self'${extra.connect ? ` ${extra.connect}` : ''}`,
+    "manifest-src 'self'",
+    "worker-src 'self'",
+    ...(extra.frame ? [`frame-src ${extra.frame}`] : []),
+    "base-uri 'none'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    'upgrade-insecure-requests',
+  ].join('; ');
+}
+
+export const CONTENT_SECURITY_POLICY = csp();
+
+/** Pages with the Cloudflare Turnstile widget (sign-up, password reset, resend verification) only. */
+const TURNSTILE = 'https://challenges.cloudflare.com';
+export const TURNSTILE_CSP = csp({ script: TURNSTILE, frame: TURNSTILE, connect: TURNSTILE });
+export const TURNSTILE_PATHS = /^\/(signup|forgot|verify)$/;
 
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Content-Security-Policy': CONTENT_SECURITY_POLICY,
@@ -36,8 +47,9 @@ export const PRIVATE_HEADERS: Readonly<Record<string, string>> = {
   'X-Robots-Tag': 'noindex, nofollow, noarchive',
 };
 
+/** Never cached, never indexed: notes, requests, the API, the dashboard and one-time token pages. */
 export function isPrivatePath(pathname: string): boolean {
-  return /^\/(n|d|api)(\/|$)/.test(pathname);
+  return /^\/(n|d|r|api|app|verify|reset|join|forgot)(\/|$)/.test(pathname);
 }
 
 export function json(body: unknown, status = 200, extra?: Record<string, string>): Response {

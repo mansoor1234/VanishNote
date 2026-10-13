@@ -1,0 +1,96 @@
+---
+import { env } from 'cloudflare:workers';
+import App from '../../layouts/App.astro';
+
+export const prerender = false;
+const user = Astro.locals.user!;
+const vapidKey = env.VAPID_PUBLIC_KEY;
+---
+
+<App title="Settings">
+  <div class="mx-auto max-w-2xl space-y-6">
+    <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
+
+    <section class="card" aria-labelledby="profile-title">
+      <h2 id="profile-title" class="text-lg font-bold">Profile</h2>
+      <form class="mt-4 space-y-4" data-form="profile" novalidate>
+        <div>
+          <label for="s-name" class="field-label">Name</label>
+          <input id="s-name" name="name" class="input" required maxlength="80" value={user.name} autocomplete="name" />
+          <p class="field-hint">Shown to recipients as the sender, and to your teammates.</p>
+        </div>
+        <div>
+          <p class="field-label">Email</p>
+          <p class="text-muted">{user.email}</p>
+        </div>
+        <p role="status" class="text-sm" data-result></p>
+        <button type="submit" class="btn-primary">Save</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="password-title">
+      <h2 id="password-title" class="text-lg font-bold">Change password</h2>
+      <form class="mt-4 space-y-4" data-form="password" data-email={user.email} novalidate>
+        <div>
+          <label for="s-current" class="field-label">Current password</label>
+          <input id="s-current" name="current" type="password" class="input" autocomplete="current-password" required />
+        </div>
+        <div>
+          <label for="s-new" class="field-label">New password</label>
+          <input id="s-new" name="password" type="password" class="input" autocomplete="new-password" required minlength="10" />
+        </div>
+        <div>
+          <label for="s-confirm" class="field-label">Confirm new password</label>
+          <input id="s-confirm" name="confirm" type="password" class="input" autocomplete="new-password" required />
+        </div>
+        <p class="text-sm text-muted">You’ll be signed out everywhere and asked to log in again.</p>
+        <p role="status" class="text-sm" data-result></p>
+        <button type="submit" class="btn-primary">Change password</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="notify-title">
+      <h2 id="notify-title" class="text-lg font-bold">Notifications</h2>
+      <p class="mt-2 text-sm text-muted">
+        We email {user.email} when one of your notes is opened or a request is answered. You can also get a push
+        notification on this device.
+      </p>
+      <div class="mt-4" data-push data-vapid={vapidKey}>
+        <p class="text-sm font-semibold" data-push-state>Checking this device…</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="button" class="btn-primary" data-push-enable hidden>Turn on for this device</button>
+          <button type="button" class="btn-secondary" data-push-test hidden>Send a test</button>
+          <button type="button" class="btn-secondary" data-push-disable hidden>Turn off</button>
+        </div>
+        <p role="status" class="mt-2 text-sm" data-result></p>
+        <p class="mt-2 text-xs text-muted">
+          On iPhone and iPad, push works after you add Vanishnote to your Home Screen (Share → Add to Home Screen).
+        </p>
+      </div>
+    </section>
+
+    <section class="card border-danger/40" aria-labelledby="delete-title">
+      <h2 id="delete-title" class="text-lg font-bold text-danger">Delete account</h2>
+      <p class="mt-2 text-sm text-muted">
+        {
+          user.role === 'owner'
+            ? 'This deletes your account and your team, including every live note, request, attachment and all history. It can’t be undone.'
+            : 'This deletes your account. Notes you sent stay with the team until they expire.'
+        }
+      </p>
+      <form class="mt-4 space-y-4" data-form="delete" data-email={user.email} novalidate>
+        <div>
+          <label for="s-delete-password" class="field-label">Confirm with your password</label>
+          <input id="s-delete-password" name="password" type="password" class="input" autocomplete="current-password" required />
+        </div>
+        <p role="status" class="text-sm" data-result></p>
+        <button type="submit" class="btn-danger">Delete my account</button>
+      </form>
+    </section>
+  </div>
+</App>
+
+<script>
+  import { initSettings } from '../../scripts/app/settings';
+  initSettings();
+</script>
