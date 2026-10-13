@@ -37,6 +37,21 @@ password or tampered byte gives the same `DecryptionError`.
   fragments and are only used on a button press, so mail scanners can't consume them.
 - **No account enumeration** through sign-up, login, password reset or resend: the answer is the
   same whether or not an address is registered.
+- **Two-factor sign-in** (optional, in Settings): after the password, a browser we don't recognise
+  must enter a 6-digit code we email. Codes are uniformly random, stored only as
+  `SHA-256(challengeId:code)`, valid for 10 minutes, allow 5 attempts, and a new sign-in replaces
+  any pending code. A browser that completes sign-in gets a random 256-bit device cookie
+  (`HttpOnly`, stored hashed, 90 days). Turning 2FA on or off needs the password; turning it off or
+  resetting the password forgets every remembered device. A password reset link already proves
+  control of the inbox, so it doesn't also ask for a code. The second factor is the email
+  inbox, which is weaker than an authenticator app or a passkey.
+- **API keys:** `vn_` + 256 random bits, shown once, stored as SHA-256. Creating or regenerating one
+  needs the password. A key only works on note and request endpoints, never on account, team or
+  security settings (password, 2FA, API key, deletion). Browsers can't send it cross-site, because
+  we never answer CORS preflights, so it isn't exposed to CSRF.
+- **Consent:** sign-up requires accepting the terms and privacy policy. We record which version
+  (the `LEGAL_UPDATED` date in `src/lib/site.ts`) and when; Settings asks users to re-accept after
+  that date changes.
 - **Turnstile** guards sign-up, password reset and resend-verification. Without a secret it fails
   closed except on localhost.
 - Monthly quotas are enforced with a single conditional `INSERT … ON CONFLICT DO UPDATE … WHERE`,

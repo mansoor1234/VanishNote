@@ -4,9 +4,11 @@
  */
 import type { Limiter } from './api';
 import {
+  getApiKeyUser,
   getSessionUser,
   handleForgot,
   handleLogin,
+  handleLoginCode,
   handleLogout,
   handleResendVerification,
   handleReset,
@@ -27,13 +29,18 @@ import { error, tooManyRequests } from './http';
 import { handleCreateRequest, handleOpenRequest, handleRequestKey, handleRespond } from './requests';
 import {
   handleChangePassword,
+  handleConsent,
   handleContact,
+  handleCreateApiKey,
   handleDeleteAccount,
   handleDevOutbox,
+  handleForgetDevices,
   handleProfile,
   handlePushSubscribe,
   handlePushTest,
   handlePushUnsubscribe,
+  handleRevokeApiKey,
+  handleTwoFactor,
 } from './settings';
 import {
   handleBranding,
@@ -52,6 +59,8 @@ interface Route {
   pattern: RegExp;
   handler: (ctx: Ctx, ...params: string[]) => Promise<Response>;
   auth?: boolean;
+  /** Also accepts `Authorization: Bearer vn_…` (personal API key). Never on account or security settings. */
+  apiKey?: boolean;
   limiter?: LimiterName;
 }
 
@@ -63,19 +72,20 @@ const routes: Route[] = [
   { method: 'POST', pattern: /^\/api\/auth\/verify$/, handler: handleVerify, limiter: 'AUTH_LIMITER' },
   { method: 'POST', pattern: /^\/api\/auth\/resend$/, handler: handleResendVerification, limiter: 'AUTH_LIMITER' },
   { method: 'POST', pattern: /^\/api\/auth\/login$/, handler: handleLogin, limiter: 'AUTH_LIMITER' },
+  { method: 'POST', pattern: /^\/api\/auth\/login\/code$/, handler: handleLoginCode, limiter: 'AUTH_LIMITER' },
   { method: 'POST', pattern: /^\/api\/auth\/logout$/, handler: handleLogout },
   { method: 'POST', pattern: /^\/api\/auth\/forgot$/, handler: handleForgot, limiter: 'AUTH_LIMITER' },
   { method: 'POST', pattern: /^\/api\/auth\/reset$/, handler: handleReset, limiter: 'AUTH_LIMITER' },
 
-  // Dashboard: notes, requests, activity
-  { method: 'GET', pattern: /^\/api\/account\/records$/, handler: handleListRecords, auth: true },
-  { method: 'GET', pattern: new RegExp(`^/api/account/records/${ID}$`), handler: handleRecordEvents, auth: true },
-  { method: 'DELETE', pattern: new RegExp(`^/api/account/records/${ID}$`), handler: handleDeleteRecord, auth: true },
-  { method: 'POST', pattern: /^\/api\/account\/notes$/, handler: handleCreateAccountNote, auth: true, limiter: 'CREATE_LIMITER' },
-  { method: 'POST', pattern: new RegExp(`^/api/account/notes/${ID}/send$`), handler: handleSendNote, auth: true, limiter: 'CREATE_LIMITER' },
-  { method: 'POST', pattern: /^\/api\/account\/requests$/, handler: handleCreateRequest, auth: true, limiter: 'CREATE_LIMITER' },
-  { method: 'GET', pattern: new RegExp(`^/api/account/requests/${ID}/key$`), handler: handleRequestKey, auth: true },
-  { method: 'POST', pattern: new RegExp(`^/api/account/requests/${ID}/open$`), handler: handleOpenRequest, auth: true },
+  // Dashboard: notes, requests, activity (also usable with an API key)
+  { method: 'GET', pattern: /^\/api\/account\/records$/, handler: handleListRecords, auth: true, apiKey: true },
+  { method: 'GET', pattern: new RegExp(`^/api/account/records/${ID}$`), handler: handleRecordEvents, auth: true, apiKey: true },
+  { method: 'DELETE', pattern: new RegExp(`^/api/account/records/${ID}$`), handler: handleDeleteRecord, auth: true, apiKey: true },
+  { method: 'POST', pattern: /^\/api\/account\/notes$/, handler: handleCreateAccountNote, auth: true, apiKey: true, limiter: 'CREATE_LIMITER' },
+  { method: 'POST', pattern: new RegExp(`^/api/account/notes/${ID}/send$`), handler: handleSendNote, auth: true, apiKey: true, limiter: 'CREATE_LIMITER' },
+  { method: 'POST', pattern: /^\/api\/account\/requests$/, handler: handleCreateRequest, auth: true, apiKey: true, limiter: 'CREATE_LIMITER' },
+  { method: 'GET', pattern: new RegExp(`^/api/account/requests/${ID}/key$`), handler: handleRequestKey, auth: true, apiKey: true },
+  { method: 'POST', pattern: new RegExp(`^/api/account/requests/${ID}/open$`), handler: handleOpenRequest, auth: true, apiKey: true },
 
   // Team
   { method: 'POST', pattern: /^\/api\/account\/team\/invite$/, handler: handleInvite, auth: true, limiter: 'CREATE_LIMITER' },
@@ -94,6 +104,11 @@ const routes: Route[] = [
   { method: 'DELETE', pattern: /^\/api\/account\/push$/, handler: handlePushUnsubscribe, auth: true },
   { method: 'POST', pattern: /^\/api\/account\/push\/test$/, handler: handlePushTest, auth: true, limiter: 'CREATE_LIMITER' },
   { method: 'POST', pattern: /^\/api\/account\/contact$/, handler: handleContact, auth: true, limiter: 'CREATE_LIMITER' },
+  { method: 'POST', pattern: /^\/api\/account\/2fa$/, handler: handleTwoFactor, auth: true, limiter: 'AUTH_LIMITER' },
+  { method: 'DELETE', pattern: /^\/api\/account\/2fa\/devices$/, handler: handleForgetDevices, auth: true },
+  { method: 'POST', pattern: /^\/api\/account\/api-key$/, handler: handleCreateApiKey, auth: true, limiter: 'AUTH_LIMITER' },
+  { method: 'DELETE', pattern: /^\/api\/account\/api-key$/, handler: handleRevokeApiKey, auth: true },
+  { method: 'POST', pattern: /^\/api\/account\/consent$/, handler: handleConsent, auth: true },
 
   // Public (no account): responding to requests, attachment downloads, wrong-password reports
   { method: 'POST', pattern: new RegExp(`^/api/requests/${ID}/respond$`), handler: handleRespond, limiter: 'READ_LIMITER' },
@@ -122,8 +137,12 @@ export async function handleApi(ctx: Ctx): Promise<Response> {
       }
     }
     if (route.auth) {
-      ctx.user = await getSessionUser(ctx);
-      if (!ctx.user) return error(401, 'unauthorized', 'Please log in again.');
+      ctx.user = (await getSessionUser(ctx)) ?? (route.apiKey ? await getApiKeyUser(ctx) : undefined);
+      if (!ctx.user) {
+        return ctx.request.headers.has('Authorization')
+          ? error(401, 'unauthorized', 'That API key is missing, revoked, or not allowed on this endpoint.')
+          : error(401, 'unauthorized', 'Please log in again.');
+      }
     }
     return route.handler(ctx, ...match.slice(1).map((p) => decodeURIComponent(p)));
   }

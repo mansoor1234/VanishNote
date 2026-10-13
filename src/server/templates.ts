@@ -73,6 +73,20 @@ export function signupExistingEmail(to: string, loginUrl: string, resetUrl: stri
   });
 }
 
+export function loginCodeEmail(to: string, name: string, code: string, country: string | null): Email {
+  const where = country ? ` from a new device (${country})` : ' from a new device';
+  return render(to, `${code} is your Vanishnote sign-in code`, {
+    paragraphs: [
+      `Hi ${name},`,
+      `Someone signed in to your Vanishnote account${where}. Enter this code to finish signing in:`,
+      code,
+    ],
+    footer: [
+      'The code expires in 10 minutes. If this wasn’t you, your password has been used by someone else: reset it now from the sign-in page.',
+    ],
+  });
+}
+
 export function resetEmail(to: string, url: string): Email {
   return render(to, 'Reset your Vanishnote password', {
     paragraphs: ['Use the button below to choose a new password.'],

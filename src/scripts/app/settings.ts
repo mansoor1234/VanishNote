@@ -1,7 +1,7 @@
 import { deriveAuthKey } from '../../lib/crypto';
 import { fromBase64Url } from '../../lib/encoding';
 import { del, postJson } from '../http-client';
-import { $, initPasswordToggles } from '../ui';
+import { $, initCopyButtons, initPasswordToggles } from '../ui';
 
 /** Wire a form: validate required fields, run `action`, and show the outcome in [data-result]. */
 export function bindForm(
@@ -78,6 +78,123 @@ export function initSettings(): void {
   }
 
   void initPush();
+  initTwoFactor();
+  initApiKey();
+  initConsent();
+  document.querySelector('[data-delete-start]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    const form = document.querySelector<HTMLFormElement>('form[data-form="delete"]');
+    if (!form) return;
+    form.hidden = false;
+    button.hidden = true;
+    form.querySelector<HTMLInputElement>('input')?.focus();
+  });
+}
+
+/**
+ * Reveal the card's "confirm with your password" form and resolve with the derived auth key,
+ * or null if the user cancels.
+ */
+function askPassword(root: HTMLElement, email: string): Promise<string | null> {
+  const form = $<HTMLFormElement>('form[data-confirm-password]', root);
+  const input = $<HTMLInputElement>('input[type="password"]', form);
+  const submit = $<HTMLButtonElement>('button[type="submit"]', form);
+  form.hidden = false;
+  input.value = '';
+  input.focus();
+  return new Promise((resolve) => {
+    const done = (value: string | null) => {
+      form.hidden = true;
+      form.removeEventListener('submit', onSubmit);
+      cancel.removeEventListener('click', onCancel);
+      submit.disabled = false;
+      resolve(value);
+    };
+    const onSubmit = async (event: Event) => {
+      event.preventDefault();
+      if (!input.value) return input.focus();
+      submit.disabled = true;
+      done(await deriveAuthKey(email, input.value));
+    };
+    const onCancel = () => done(null);
+    const cancel = $('[data-cancel]', form);
+    form.addEventListener('submit', onSubmit);
+    cancel.addEventListener('click', onCancel);
+  });
+}
+
+function say(root: HTMLElement, message: string, ok: boolean): void {
+  const result = $('[data-result]', root);
+  result.className = `mt-3 text-sm ${ok ? 'text-success' : 'text-danger'}`;
+  result.textContent = message;
+}
+
+function initTwoFactor(): void {
+  const root = document.querySelector<HTMLElement>('[data-two-factor]');
+  if (!root) return;
+  const enabled = root.dataset['enabled'] === 'true';
+  const email = root.dataset['email']!;
+  const toggle = $<HTMLButtonElement>('[data-two-factor-toggle]', root);
+  toggle.addEventListener('click', async () => {
+    toggle.disabled = true;
+    const authKey = await askPassword(root, email);
+    toggle.disabled = false;
+    if (!authKey) return;
+    const r = await postJson('/api/account/2fa', { enabled: !enabled, authKey });
+    if (!r.ok) return say(root, r.message, false);
+    location.reload();
+  });
+  root.querySelector('[data-forget-devices]')?.addEventListener('click', async () => {
+    if (!window.confirm('Forget every remembered device, including this one? Each will need an email code at the next sign-in.')) return;
+    const r = await del('/api/account/2fa/devices');
+    if (!r.ok) return say(root, r.message, false);
+    location.reload();
+  });
+}
+
+function initApiKey(): void {
+  const root = document.querySelector<HTMLElement>('[data-api-key]');
+  if (!root) return;
+  const email = root.dataset['email']!;
+  const hasKey = root.dataset['hasKey'] === 'true';
+  initCopyButtons(root);
+  const create = $<HTMLButtonElement>('[data-api-create]', root);
+  create.addEventListener('click', async () => {
+    if (hasKey && !window.confirm('Regenerate your API key? The current key stops working immediately.')) return;
+    create.disabled = true;
+    const authKey = await askPassword(root, email);
+    create.disabled = false;
+    if (!authKey) return;
+    const r = await postJson<{ key: string }>('/api/account/api-key', { authKey });
+    if (!r.ok) return say(root, r.message, false);
+    $<HTMLInputElement>('#api-new-key').value = r.data.key;
+    $('[data-new-key]', root).hidden = false;
+    create.hidden = true;
+    root.querySelector<HTMLElement>('[data-api-revoke]')?.setAttribute('hidden', '');
+    say(root, 'Your new key is ready. Reload the page after copying it.', true);
+  });
+  root.querySelector('[data-api-revoke]')?.addEventListener('click', async () => {
+    if (!window.confirm('Revoke your API key? Anything using it stops working immediately.')) return;
+    const r = await del('/api/account/api-key');
+    if (!r.ok) return say(root, r.message, false);
+    location.reload();
+  });
+}
+
+function initConsent(): void {
+  const root = document.querySelector<HTMLElement>('[data-consent]');
+  const accept = document.querySelector<HTMLButtonElement>('[data-accept-terms]');
+  if (!root || !accept) return;
+  accept.addEventListener('click', async () => {
+    accept.disabled = true;
+    const r = await postJson('/api/account/consent', { accept: true });
+    if (!r.ok) {
+      accept.disabled = false;
+      $('[data-result]', root).textContent = r.message;
+      return;
+    }
+    location.reload();
+  });
 }
 
 async function initPush(): Promise<void> {

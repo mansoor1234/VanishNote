@@ -31,6 +31,7 @@ async function signUp(page: Page, name = 'Robin Test') {
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
+  await page.getByLabel(/I agree to the/).check();
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByText('Check your email.')).toBeVisible({ timeout: 20_000 });
 
@@ -201,5 +202,59 @@ test('pricing page: three plans, monthly/yearly toggle', async ({ page }) => {
   await page.getByRole('button', { name: /Yearly/ }).click();
   await expect(business.locator('[data-monthly]')).toHaveText('24');
   await expect(business.getByText('Billed yearly at $288')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('settings: two-factor sign-in on a new device, API key, consent', async ({ page, browser }) => {
+  const errors = trackConsoleErrors(page);
+  const { email, password } = await signUp(page, 'Sec Ure');
+  await page.goto('/app/settings');
+
+  // Consent was recorded at sign-up.
+  await page.getByRole('button', { name: 'Terms & privacy consent' }).click();
+  const consent = page.getByRole('dialog', { name: 'Terms & privacy consent' });
+  await expect(consent.getByText('That’s the current version. Nothing to do.')).toBeVisible();
+  await consent.getByRole('button', { name: 'Close' }).last().click();
+
+  // API key: needs the password, shown once.
+  const apiCard = page.locator('#api-key');
+  await apiCard.getByRole('button', { name: 'Create API key' }).click();
+  await apiCard.getByLabel('Confirm with your password').fill(password);
+  await apiCard.getByRole('button', { name: 'Confirm' }).click();
+  await expect(apiCard.getByLabel('New API key')).toHaveValue(/^vn_[A-Za-z0-9_-]{43}$/, { timeout: 20_000 });
+  const key = await apiCard.getByLabel('New API key').inputValue();
+  const viaKey = await page.request.get('/api/account/records', { headers: { Authorization: `Bearer ${key}`, Cookie: '' } });
+  expect(viaKey.status()).toBe(200);
+
+  // Two-factor on.
+  const tf = page.locator('#two-factor');
+  await tf.getByRole('button', { name: 'Enable two-factor authentication' }).click();
+  await tf.getByLabel('Confirm with your password').fill(password);
+  await tf.getByRole('button', { name: 'Confirm' }).click();
+  await expect(page.locator('#two-factor').getByRole('button', { name: 'Disable two-factor authentication' })).toBeVisible();
+
+  // A different browser needs the emailed code.
+  const other = await browser.newContext();
+  await other.setExtraHTTPHeaders({ 'CF-Connecting-IP': `198.51.100.${Math.floor(Math.random() * 200) + 1}` });
+  const p2 = await other.newPage();
+  await p2.goto('/login');
+  await p2.getByLabel('Email').fill(email);
+  await p2.getByLabel('Password', { exact: true }).fill(password);
+  await p2.getByRole('button', { name: 'Log in' }).click();
+  await expect(p2.getByLabel('Sign-in code')).toBeVisible({ timeout: 20_000 });
+  const outbox = await (await p2.request.get(`/api/dev/outbox?to=${encodeURIComponent(email)}`)).json();
+  const code = (outbox.emails[0].subject as string).slice(0, 6);
+  expect(code).toMatch(/^\d{6}$/);
+  await p2.getByLabel('Sign-in code').fill(code);
+  await p2.getByRole('button', { name: 'Verify and log in' }).click();
+  await expect(p2).toHaveURL(/\/app$/);
+
+  // Now that browser is remembered: logging out and back in skips the code.
+  await p2.getByRole('button', { name: 'Log out' }).click();
+  await p2.getByLabel('Email').fill(email);
+  await p2.getByLabel('Password', { exact: true }).fill(password);
+  await p2.getByRole('button', { name: 'Log in' }).click();
+  await expect(p2).toHaveURL(/\/app$/, { timeout: 20_000 });
+  await other.close();
   expect(errors).toEqual([]);
 });

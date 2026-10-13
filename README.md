@@ -110,6 +110,34 @@ expired sessions and tokens, and deletes R2 files nothing can reach any more.
 Regenerate the social images and push icon after branding changes with
 `node scripts/generate-og.mjs`.
 
+## API
+
+Create a personal key in **Settings → Your API key** (it's shown once; we store only its hash)
+and send it as `Authorization: Bearer vn_…`. Keys work on these endpoints only, never on account
+or security settings:
+
+| Method | Path | |
+| ------ | ---- | - |
+| `GET` | `/api/account/records?kind=note\|request` | Notes and requests, with status |
+| `GET` | `/api/account/records/:id` | One record and its activity history |
+| `DELETE` | `/api/account/records/:id` | Destroy a note / cancel a request, and delete its history |
+| `POST` | `/api/account/notes` | Create a note (`multipart/form-data`: `meta` JSON + optional encrypted `file`) |
+| `POST` | `/api/account/notes/:id/send` | Email the link to a recipient (password-protected notes only) |
+| `POST` | `/api/account/requests` | Create an information request |
+| `GET` | `/api/account/requests/:id/key` | The request's wrapped private key (no side effects) |
+| `POST` | `/api/account/requests/:id/open` | Fetch and shred an answered request |
+
+Everything is end-to-end encrypted, so **your code encrypts before calling the API**, exactly as
+the browser does. Reuse [`src/lib/crypto.ts`](src/lib/crypto.ts) (`sealNote`, `createRequestKeys`,
+`unlockRequestKey`, …); it only needs Web Crypto, so it runs unchanged in Node 22, Deno, Bun and
+Workers. The `meta` JSON for a note is validated by `accountNoteSchema` in
+[`src/server/account-notes.ts`](src/server/account-notes.ts). Build the share link as
+`APP_URL + path + "#" + linkKey` from the `path` the API returns. Rate limits apply per IP.
+
+```sh
+curl https://your-domain/api/account/records -H "Authorization: Bearer vn_…"
+```
+
 ## Changing a team's plan
 
 Billing isn't connected yet. Upgrade requests arrive through the dashboard's Contact form

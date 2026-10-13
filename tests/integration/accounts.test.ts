@@ -16,6 +16,7 @@ import { runCleanup } from '../../src/server/cleanup';
 import { createCtx, type AppEnv } from '../../src/server/context';
 import { onAccountNoteRead } from '../../src/server/records';
 import { handleApi } from '../../src/server/router';
+import { LEGAL_UPDATED } from '../../src/lib/site';
 import { createTestEnv } from './d1';
 
 let env: AppEnv;
@@ -99,7 +100,7 @@ async function newUser(name = 'Jane') {
   const email = `user${++counter}-${Date.now()}@example.com`;
   const password = `pw-${counter}-correct horse`;
   const authKey = await deriveAuthKey(email, password);
-  const signup = await api('POST', '/api/auth/signup', { json: { name, email, authKey } });
+  const signup = await api('POST', '/api/auth/signup', { json: { name, email, authKey, acceptTerms: true } });
   expect(signup.status).toBe(202);
   const [mail] = await outbox(email);
   const token = linkIn(mail!.text, '/verify#').split('#')[1];
@@ -143,7 +144,7 @@ describe('sign-up, verification and login', () => {
 
   it('gives the same answer for an existing email and does not create a second account', async () => {
     const user = await newUser();
-    const again = await api('POST', '/api/auth/signup', { json: { name: 'Mallory', email: user.email, authKey: user.authKey } });
+    const again = await api('POST', '/api/auth/signup', { json: { name: 'Mallory', email: user.email, authKey: user.authKey, acceptTerms: true } });
     expect(again.status).toBe(202);
     const { n } = (await env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE email = ?1').bind(user.email).first<{ n: number }>())!;
     expect(n).toBe(1);
@@ -153,7 +154,7 @@ describe('sign-up, verification and login', () => {
   it('rejects unverified logins, wrong passwords and reused verification links', async () => {
     const email = `unverified-${Date.now()}@example.com`;
     const authKey = await deriveAuthKey(email, 'pw');
-    await api('POST', '/api/auth/signup', { json: { name: 'U', email, authKey } });
+    await api('POST', '/api/auth/signup', { json: { name: 'U', email, authKey, acceptTerms: true } });
     expect((await api('POST', '/api/auth/login', { json: { email, authKey } })).status).toBe(403);
 
     const token = linkIn((await outbox(email))[0]!.text, '/verify#').split('#')[1];
@@ -197,7 +198,7 @@ describe('sign-up, verification and login', () => {
     const req = new Request('https://vanishnote.test/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'X', email: 'x@example.com', authKey: 'A'.repeat(43) }),
+      body: JSON.stringify({ name: 'X', email: 'x@example.com', authKey: 'A'.repeat(43), acceptTerms: true }),
     });
     const res = await handleApi(createCtx(req, env, { now: clock }));
     expect(res.status).toBe(400);
@@ -494,5 +495,123 @@ describe('settings and cleanup', () => {
     const off = { ...env, DEV_OUTBOX: undefined };
     const res = await handleApi(createCtx(new Request(`${BASE}/api/dev/outbox`), off, { now: clock }));
     expect(res.status).toBe(404);
+  });
+});
+
+describe('security settings', () => {
+  function cookiesFrom(res: Response): string[] {
+    return res.headers.getSetCookie().map((c) => c.split(';')[0]!);
+  }
+
+  async function login(email: string, authKey: string, cookie?: string) {
+    const res = await api('POST', '/api/auth/login', { json: { email, authKey }, ...(cookie ? { cookie } : {}) });
+    return { res, body: (await res.json()) as { ok?: boolean; twoFactor?: boolean; challengeId?: string } };
+  }
+
+  it('sign-up records which version of the terms was accepted, and requires acceptance', async () => {
+    const user = await newUser();
+    const row = await env.DB.prepare('SELECT terms_version, terms_accepted_at FROM users WHERE email = ?1')
+      .bind(user.email)
+      .first<{ terms_version: string; terms_accepted_at: number }>();
+    expect(row).toEqual({ terms_version: LEGAL_UPDATED, terms_accepted_at: clock });
+
+    const email = `noconsent-${Date.now()}@example.com`;
+    const res = await api('POST', '/api/auth/signup', { json: { name: 'N', email, authKey: await deriveAuthKey(email, 'pw') } });
+    expect(res.status).toBe(400);
+    expect(await env.DB.prepare('SELECT 1 FROM users WHERE email = ?1').bind(email).first()).toBeNull();
+
+    // Re-accepting (e.g. after the terms change) updates the record.
+    clock += 1000;
+    expect((await api('POST', '/api/account/consent', { json: { accept: true }, cookie: user.cookie })).status).toBe(200);
+    const after = await env.DB.prepare('SELECT terms_accepted_at FROM users WHERE email = ?1')
+      .bind(user.email)
+      .first<{ terms_accepted_at: number }>();
+    expect(after!.terms_accepted_at).toBe(clock);
+  });
+
+  it('two-factor: unrecognised devices need an emailed code; recognised ones do not', async () => {
+    const user = await newUser('Tess');
+    // Enabling needs the password, and remembers the current browser.
+    const badPassword = { enabled: true, authKey: 'A'.repeat(43) };
+    expect((await api('POST', '/api/account/2fa', { json: badPassword, cookie: user.cookie })).status).toBe(403);
+    const enable = await api('POST', '/api/account/2fa', { json: { enabled: true, authKey: user.authKey }, cookie: user.cookie });
+    expect(enable.status).toBe(200);
+    const device = cookiesFrom(enable).find((c) => c.startsWith('vn_device='))!;
+    expect(device).toMatch(/^vn_device=[A-Za-z0-9_-]{43}$/);
+
+    // Same browser: straight in.
+    expect((await login(user.email, user.authKey, device)).body).toEqual({ ok: true });
+
+    // New browser: the password alone isn't enough.
+    const fresh = await login(user.email, user.authKey);
+    expect(fresh.body.twoFactor).toBe(true);
+    expect(fresh.res.headers.getSetCookie()).toEqual([]);
+    const mail = (await outbox(user.email)).at(-1)!;
+    expect(mail.subject).toMatch(/^\d{6} is your Vanishnote sign-in code$/);
+    const code = mail.subject.slice(0, 6);
+    const stored = await env.DB.prepare('SELECT code_hash FROM login_challenges WHERE id = ?1')
+      .bind(fresh.body.challengeId)
+      .first<{ code_hash: string }>();
+    expect(stored!.code_hash).not.toContain(code);
+
+    const wrong = code === '000000' ? '111111' : '000000';
+    const attempt = (c: string) => api('POST', '/api/auth/login/code', { json: { challengeId: fresh.body.challengeId, code: c } });
+    expect((await attempt(wrong)).status).toBe(401);
+    const ok = await attempt(code);
+    expect(ok.status).toBe(200);
+    const cookies = cookiesFrom(ok);
+    expect(cookies.some((c) => c.startsWith('vn_session='))).toBe(true);
+    expect(cookies.some((c) => c.startsWith('vn_device='))).toBe(true);
+    // The code is single-use.
+    expect((await attempt(code)).status).toBe(400);
+
+    // Turning it off needs the password and forgets remembered devices.
+    const disable = await api('POST', '/api/account/2fa', { json: { enabled: false, authKey: user.authKey }, cookie: user.cookie });
+    expect(disable.status).toBe(200);
+    expect((await login(user.email, user.authKey)).body).toEqual({ ok: true });
+  });
+
+  it('two-factor codes allow only five attempts', async () => {
+    const user = await newUser();
+    await api('POST', '/api/account/2fa', { json: { enabled: true, authKey: user.authKey }, cookie: user.cookie });
+    const { body } = await login(user.email, user.authKey);
+    const code = (await outbox(user.email)).at(-1)!.subject.slice(0, 6);
+    const wrong = code === '000000' ? '111111' : '000000';
+    const attempt = (c: string) => api('POST', '/api/auth/login/code', { json: { challengeId: body.challengeId, code: c } });
+    for (let i = 0; i < 5; i++) expect((await attempt(wrong)).status).toBe(401);
+    // Even the right code is refused once the attempts are used up.
+    expect((await attempt(code)).status).toBe(400);
+  });
+
+  it('API key: shown once, stored hashed, works only on note and request endpoints', async () => {
+    const user = await newUser();
+    expect((await api('POST', '/api/account/api-key', { json: { authKey: 'A'.repeat(43) }, cookie: user.cookie })).status).toBe(403);
+    const created = await api('POST', '/api/account/api-key', { json: { authKey: user.authKey }, cookie: user.cookie });
+    expect(created.status).toBe(201);
+    const { key, prefix } = (await created.json()) as { key: string; prefix: string };
+    expect(key).toMatch(/^vn_[A-Za-z0-9_-]{43}$/);
+    expect(key.startsWith(prefix)).toBe(true);
+    const row = await env.DB.prepare('SELECT * FROM users WHERE email = ?1').bind(user.email).first<Record<string, unknown>>();
+    expect(JSON.stringify(row)).not.toContain(key);
+
+    const bearer = (method: string, path: string, json?: unknown, token = key) => {
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}`, 'CF-Connecting-IP': '203.0.113.7' };
+      if (json !== undefined) headers['Content-Type'] = 'application/json';
+      const req = new Request(`${BASE}${path}`, { method, headers, ...(json !== undefined ? { body: JSON.stringify(json) } : {}) });
+      return handleApi(createCtx(req, env, { now: clock }));
+    };
+    expect((await bearer('GET', '/api/account/records')).status).toBe(200);
+    // Never on security-sensitive endpoints.
+    expect((await bearer('POST', '/api/account/api-key', { authKey: user.authKey })).status).toBe(401);
+    expect((await bearer('POST', '/api/account/delete', { authKey: user.authKey })).status).toBe(401);
+    expect((await bearer('POST', '/api/account/2fa', { enabled: false, authKey: user.authKey })).status).toBe(401);
+
+    // Regenerating replaces the old key; revoking disables it.
+    const second = (await (await api('POST', '/api/account/api-key', { json: { authKey: user.authKey }, cookie: user.cookie })).json()) as { key: string };
+    expect(second.key).not.toBe(key);
+    expect((await bearer('GET', '/api/account/records')).status).toBe(401);
+    expect((await bearer('GET', '/api/account/records', undefined, second.key)).status).toBe(200);
+    await api('DELETE', '/api/account/api-key', { cookie: user.cookie });
+    expect((await bearer('GET', '/api/account/records', undefined, second.key)).status).toBe(401);
   });
 });

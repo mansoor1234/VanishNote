@@ -40,12 +40,16 @@ const wanted = isPlanId(plan) && plan !== 'free' ? PLANS[plan] : null;
       <label for="confirm" class="field-label">Confirm password</label>
       <input id="confirm" name="confirm" type="password" class="input" autocomplete="new-password" required />
     </div>
+    <div class="flex items-start gap-3">
+      <input id="accept-terms" name="acceptTerms" type="checkbox" class="mt-1 size-5 shrink-0 accent-accent" required />
+      <label for="accept-terms" class="text-sm">
+        I agree to the <a class="link" href="/terms" target="_blank" rel="noopener">terms of use</a> and
+        <a class="link" href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
+      </label>
+    </div>
     <Turnstile />
     <p class="notice-danger" role="alert" data-error hidden></p>
     <button type="submit" class="btn-primary w-full">Create account</button>
-    <p class="text-center text-xs text-muted">
-      By signing up you agree to our <a class="link" href="/terms">terms</a> and <a class="link" href="/privacy">privacy policy</a>.
-    </p>
   </form>
   <div data-done hidden>
     <p class="notice-success" role="status">

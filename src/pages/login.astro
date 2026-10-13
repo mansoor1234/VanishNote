@@ -23,6 +23,25 @@ export const prerender = false;
     <p class="notice-danger" role="alert" data-error hidden></p>
     <button type="submit" class="btn-primary w-full">Log in</button>
   </form>
+  <form class="space-y-4" data-login-code novalidate hidden>
+    <p class="notice-success" role="status" data-code-message></p>
+    <p class="text-sm text-muted">Two-factor sign-in is on for this account, and we don’t recognise this device.</p>
+    <div>
+      <label for="code" class="field-label">Sign-in code</label>
+      <input
+        id="code"
+        name="code"
+        class="input text-center font-mono text-2xl tracking-[0.4em]"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        pattern="[0-9]{6}"
+        maxlength="6"
+        required
+      />
+    </div>
+    <p class="notice-danger" role="alert" data-error hidden></p>
+    <button type="submit" class="btn-primary w-full">Verify and log in</button>
+  </form>
   <hr class="my-6 border-line" />
   <p class="text-center text-sm text-muted">New here? <a class="link" href="/signup">Create a free account</a></p>
 </Auth>

@@ -1,11 +1,11 @@
 /** Account settings, push devices, contact form, and the local-only dev outbox. */
 import { z } from 'zod';
-import { CONTACT_EMAIL } from '../lib/site';
+import { CONTACT_EMAIL, LEGAL_UPDATED } from '../lib/site';
 import { PLANS } from '../lib/plans';
-import { authKeySchema, checkAuthKey, hashAuthKey, nameSchema, parseBody, sessionCookie } from './auth';
+import { authKeySchema, checkAuthKey, hashAuthKey, nameSchema, parseBody, sessionCookie, trustDevice } from './auth';
 import { isLocalRequest, type Ctx } from './context';
 import { randomBytes, toBase64Url } from '../lib/encoding';
-import { error, json, noContent, notFound } from './http';
+import { error, json, noContent, notFound, sha256Hex } from './http';
 import { createMailer } from './mail';
 import { notifyUser } from './notify';
 import { contactEmail } from './templates';
@@ -68,6 +68,103 @@ export async function handleDeleteAccount(ctx: Ctx): Promise<Response> {
     await db.prepare('DELETE FROM users WHERE id = ?1').bind(user.id).run();
   }
   return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(ctx.url, '', 0) });
+}
+
+export interface AccountSecurity {
+  twoFactor: boolean;
+  apiKeyPrefix: string | null;
+  apiKeyCreatedAt: number | null;
+  apiKeyLastUsedAt: number | null;
+  termsVersion: string | null;
+  termsAcceptedAt: number | null;
+  trustedDevices: number;
+}
+
+export async function accountSecurity(db: D1Database, userId: string, now: number): Promise<AccountSecurity> {
+  const row = await db
+    .prepare(
+      `SELECT two_factor, api_key_prefix, api_key_created_at, api_key_last_used_at, terms_version, terms_accepted_at,
+              (SELECT COUNT(*) FROM trusted_devices d WHERE d.user_id = users.id AND d.expires_at > ?2) AS devices
+         FROM users WHERE id = ?1`,
+    )
+    .bind(userId, now)
+    .first<Record<string, string | number | null>>();
+  return {
+    twoFactor: row?.['two_factor'] === 1,
+    apiKeyPrefix: (row?.['api_key_prefix'] as string | null) ?? null,
+    apiKeyCreatedAt: (row?.['api_key_created_at'] as number | null) ?? null,
+    apiKeyLastUsedAt: (row?.['api_key_last_used_at'] as number | null) ?? null,
+    termsVersion: (row?.['terms_version'] as string | null) ?? null,
+    termsAcceptedAt: (row?.['terms_accepted_at'] as number | null) ?? null,
+    trustedDevices: Number(row?.['devices'] ?? 0),
+  };
+}
+
+/** Turn two-factor sign-in on or off. Needs the password; enabling remembers this browser. */
+export async function handleTwoFactor(ctx: Ctx): Promise<Response> {
+  const user = ctx.user!;
+  const input = await parseBody(ctx, z.strictObject({ enabled: z.boolean(), authKey: authKeySchema }));
+  if (input instanceof Response) return input;
+  if (!(await checkAuthKey(ctx, user.id, input.authKey))) {
+    return error(403, 'invalid_credentials', 'That password is incorrect.');
+  }
+  if (input.enabled) {
+    await ctx.env.DB.prepare('UPDATE users SET two_factor = 1 WHERE id = ?1').bind(user.id).run();
+    // This browser already proved itself with the password and an existing session.
+    return json({ ok: true, enabled: true }, 200, { 'Set-Cookie': await trustDevice(ctx, user.id) });
+  }
+  await ctx.env.DB.batch([
+    ctx.env.DB.prepare('UPDATE users SET two_factor = 0 WHERE id = ?1').bind(user.id),
+    ctx.env.DB.prepare('DELETE FROM trusted_devices WHERE user_id = ?1').bind(user.id),
+    ctx.env.DB.prepare('DELETE FROM login_challenges WHERE user_id = ?1').bind(user.id),
+  ]);
+  return json({ ok: true, enabled: false });
+}
+
+/** Forget every remembered browser: the next sign-in on each one needs an email code. */
+export async function handleForgetDevices(ctx: Ctx): Promise<Response> {
+  await ctx.env.DB.prepare('DELETE FROM trusted_devices WHERE user_id = ?1').bind(ctx.user!.id).run();
+  return noContent();
+}
+
+/**
+ * Create (or replace) the personal API key. Shown once; only its SHA-256 is stored. Needs the
+ * password, since a key acts as the user.
+ */
+export async function handleCreateApiKey(ctx: Ctx): Promise<Response> {
+  const user = ctx.user!;
+  const input = await parseBody(ctx, z.strictObject({ authKey: authKeySchema }));
+  if (input instanceof Response) return input;
+  if (!(await checkAuthKey(ctx, user.id, input.authKey))) {
+    return error(403, 'invalid_credentials', 'That password is incorrect.');
+  }
+  const key = `vn_${toBase64Url(randomBytes(32))}`;
+  const prefix = key.slice(0, 10);
+  await ctx.env.DB.prepare(
+    'UPDATE users SET api_key_hash = ?2, api_key_prefix = ?3, api_key_created_at = ?4, api_key_last_used_at = NULL WHERE id = ?1',
+  )
+    .bind(user.id, await sha256Hex(key), prefix, ctx.now)
+    .run();
+  return json({ key, prefix, createdAt: ctx.now }, 201);
+}
+
+export async function handleRevokeApiKey(ctx: Ctx): Promise<Response> {
+  await ctx.env.DB.prepare(
+    'UPDATE users SET api_key_hash = NULL, api_key_prefix = NULL, api_key_created_at = NULL, api_key_last_used_at = NULL WHERE id = ?1',
+  )
+    .bind(ctx.user!.id)
+    .run();
+  return noContent();
+}
+
+/** Record acceptance of the current terms and privacy policy (LEGAL_UPDATED is the version). */
+export async function handleConsent(ctx: Ctx): Promise<Response> {
+  const input = await parseBody(ctx, z.strictObject({ accept: z.literal(true) }));
+  if (input instanceof Response) return input;
+  await ctx.env.DB.prepare('UPDATE users SET terms_version = ?2, terms_accepted_at = ?3 WHERE id = ?1')
+    .bind(ctx.user!.id, LEGAL_UPDATED, ctx.now)
+    .run();
+  return json({ version: LEGAL_UPDATED, acceptedAt: ctx.now });
 }
 
 const pushSchema = z.strictObject({

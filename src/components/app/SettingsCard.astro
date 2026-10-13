@@ -1,0 +1,35 @@
+---
+/** A settings section: icon chip, title and subtitle, a divider, then the content. */
+interface Props {
+  id: string;
+  title: string;
+  subtitle: string;
+  /** SVG path data for a 24×24 stroke icon. */
+  icon: string;
+  tone?: 'default' | 'danger';
+}
+const { id, title, subtitle, icon, tone = 'default' } = Astro.props;
+---
+
+<section class="card p-0! sm:p-0!" aria-labelledby={`${id}-title`} id={id}>
+  <div class="flex items-start gap-3 border-b border-line px-5 py-4 sm:px-6">
+    <span
+      class:list={[
+        'flex size-10 shrink-0 items-center justify-center rounded-xl',
+        tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-accent text-accent-ink',
+      ]}
+      aria-hidden="true"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d={icon}></path>
+      </svg>
+    </span>
+    <div>
+      <h2 id={`${id}-title`} class="font-bold">{title}</h2>
+      <p class="text-sm text-muted">{subtitle}</p>
+    </div>
+  </div>
+  <div class="px-5 py-5 sm:px-6">
+    <slot />
+  </div>
+</section>

@@ -1,23 +1,39 @@
 ---
 import { env } from 'cloudflare:workers';
+import SettingsCard from '../../components/app/SettingsCard.astro';
 import App from '../../layouts/App.astro';
+import { LEGAL_UPDATED } from '../../lib/site';
+import { requestCtx } from '../../server/deps';
+import { accountSecurity } from '../../server/settings';
 
 export const prerender = false;
 const user = Astro.locals.user!;
 const vapidKey = env.VAPID_PUBLIC_KEY;
+const ctx = requestCtx(Astro.locals, Astro.request);
+const security = await accountSecurity(ctx.env.DB, user.id, ctx.now);
+const consentCurrent = security.termsVersion === LEGAL_UPDATED;
+const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
+const fmt = (ms: number | null) => (ms ? dateFormat.format(new Date(ms)) : null);
+
+const ICONS = {
+  profile: 'M20 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-7A4.5 4.5 0 0 0 4 19.5V21M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
+  lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+  shield: 'M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6zM9 12l2 2 4-4',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
+  key: 'M15 7a4 4 0 1 1-3.9 4.9L3 20v-3h3v-3h3l2.1-2.1A4 4 0 0 1 15 7zM16 9h.01',
+  card: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18M7 15h3',
+};
 ---
 
 <App title="Settings">
   <div class="mx-auto max-w-2xl space-y-6">
     <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
 
-    <section class="card" aria-labelledby="profile-title">
-      <h2 id="profile-title" class="text-lg font-bold">Profile</h2>
-      <form class="mt-4 space-y-4" data-form="profile" novalidate>
+    <SettingsCard id="profile" title="Profile" subtitle="Your name as recipients and teammates see it." icon={ICONS.profile}>
+      <form class="space-y-4" data-form="profile" novalidate>
         <div>
           <label for="s-name" class="field-label">Name</label>
           <input id="s-name" name="name" class="input" required maxlength="80" value={user.name} autocomplete="name" />
-          <p class="field-hint">Shown to recipients as the sender, and to your teammates.</p>
         </div>
         <div>
           <p class="field-label">Email</p>
@@ -26,32 +42,71 @@ const vapidKey = env.VAPID_PUBLIC_KEY;
         <p role="status" class="text-sm" data-result></p>
         <button type="submit" class="btn-primary">Save</button>
       </form>
-    </section>
+    </SettingsCard>
 
-    <section class="card" aria-labelledby="password-title">
-      <h2 id="password-title" class="text-lg font-bold">Change password</h2>
-      <form class="mt-4 space-y-4" data-form="password" data-email={user.email} novalidate>
+    <SettingsCard id="password" title="Password" subtitle="It never leaves your browser, so we can’t see or recover it." icon={ICONS.lock}>
+      <form class="space-y-4" data-form="password" data-email={user.email} novalidate>
         <div>
           <label for="s-current" class="field-label">Current password</label>
           <input id="s-current" name="current" type="password" class="input" autocomplete="current-password" required />
         </div>
-        <div>
-          <label for="s-new" class="field-label">New password</label>
-          <input id="s-new" name="password" type="password" class="input" autocomplete="new-password" required minlength="10" />
-        </div>
-        <div>
-          <label for="s-confirm" class="field-label">Confirm new password</label>
-          <input id="s-confirm" name="confirm" type="password" class="input" autocomplete="new-password" required />
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="s-new" class="field-label">New password</label>
+            <input id="s-new" name="password" type="password" class="input" autocomplete="new-password" required minlength="10" />
+          </div>
+          <div>
+            <label for="s-confirm" class="field-label">Confirm new password</label>
+            <input id="s-confirm" name="confirm" type="password" class="input" autocomplete="new-password" required />
+          </div>
         </div>
         <p class="text-sm text-muted">You’ll be signed out everywhere and asked to log in again.</p>
         <p role="status" class="text-sm" data-result></p>
         <button type="submit" class="btn-primary">Change password</button>
       </form>
-    </section>
+    </SettingsCard>
 
-    <section class="card" aria-labelledby="notify-title">
-      <h2 id="notify-title" class="text-lg font-bold">Notifications</h2>
-      <p class="mt-2 text-sm text-muted">
+    <SettingsCard id="two-factor" title="Two-factor authentication" subtitle="Extra verification on unrecognised devices." icon={ICONS.shield}>
+      <div data-two-factor data-enabled={security.twoFactor ? 'true' : 'false'} data-email={user.email}>
+        <p class="text-sm">
+          Two-factor authentication adds a second check when you sign in: if we don’t recognise the browser, we email you a
+          6-digit code to enter after your password.
+        </p>
+        <p class="mt-3 text-sm font-semibold">
+          {
+            security.twoFactor ? (
+              <span class="text-success">
+                On. {security.trustedDevices} {security.trustedDevices === 1 ? 'device is' : 'devices are'} remembered.
+              </span>
+            ) : (
+              <span class="text-muted">Off.</span>
+            )
+          }
+        </p>
+        <button type="button" class:list={['mt-4 w-full', security.twoFactor ? 'btn-danger' : 'btn-primary']} data-two-factor-toggle>
+          {security.twoFactor ? 'Disable two-factor authentication' : 'Enable two-factor authentication'}
+        </button>
+        {
+          security.twoFactor && security.trustedDevices > 0 && (
+            <button type="button" class="btn-secondary mt-3 w-full" data-forget-devices>
+              Forget remembered devices
+            </button>
+          )
+        }
+        <form class="mt-4 space-y-3" data-confirm-password hidden novalidate>
+          <label for="tf-password" class="field-label">Confirm with your password</label>
+          <input id="tf-password" name="password" type="password" class="input" autocomplete="current-password" required />
+          <div class="flex gap-2">
+            <button type="submit" class="btn-primary">Confirm</button>
+            <button type="button" class="btn-secondary" data-cancel>Cancel</button>
+          </div>
+        </form>
+        <p role="status" class="mt-3 text-sm" data-result></p>
+      </div>
+    </SettingsCard>
+
+    <SettingsCard id="notifications" title="Notifications" subtitle="Know as soon as a note is opened or a request is answered." icon={ICONS.bell}>
+      <p class="text-sm">
         We email {user.email} when one of your notes is opened or a request is answered. You can also get a push
         notification on this device.
       </p>
@@ -67,27 +122,142 @@ const vapidKey = env.VAPID_PUBLIC_KEY;
           On iPhone and iPad, push works after you add Vanishnote to your Home Screen (Share → Add to Home Screen).
         </p>
       </div>
-    </section>
+    </SettingsCard>
 
-    <section class="card border-danger/40" aria-labelledby="delete-title">
-      <h2 id="delete-title" class="text-lg font-bold text-danger">Delete account</h2>
-      <p class="mt-2 text-sm text-muted">
+    <SettingsCard id="api-key" title="Your API key" subtitle="Authenticates your requests to the Vanishnote API." icon={ICONS.key}>
+      <div data-api-key data-email={user.email} data-has-key={security.apiKeyPrefix ? 'true' : 'false'}>
         {
-          user.role === 'owner'
-            ? 'This deletes your account and your team, including every live note, request, attachment and all history. It can’t be undone.'
-            : 'This deletes your account. Notes you sent stay with the team until they expire.'
+          security.apiKeyPrefix ? (
+            <>
+              <label for="api-key-prefix" class="sr-only">
+                Current API key (only the start is shown)
+              </label>
+              <input id="api-key-prefix" class="input font-mono text-sm" readonly value={`${security.apiKeyPrefix}${'•'.repeat(24)}`} />
+              <p class="field-hint">
+                Created {fmt(security.apiKeyCreatedAt)}.{' '}
+                {security.apiKeyLastUsedAt ? `Last used ${fmt(security.apiKeyLastUsedAt)}.` : 'Not used yet.'} For your safety we only
+                show the full key once, when it’s created.
+              </p>
+            </>
+          ) : (
+            <p class="text-sm text-muted">You don’t have an API key. Create one to send notes and requests from your own scripts.</p>
+          )
+        }
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <button type="button" class="btn-primary" data-api-create>{security.apiKeyPrefix ? 'Regenerate key' : 'Create API key'}</button>
+          {
+            security.apiKeyPrefix && (
+              <button type="button" class="btn-secondary text-danger" data-api-revoke>
+                Revoke key
+              </button>
+            )
+          }
+        </div>
+        <form class="mt-4 space-y-3" data-confirm-password hidden novalidate>
+          <label for="api-password" class="field-label">Confirm with your password</label>
+          <input id="api-password" name="password" type="password" class="input" autocomplete="current-password" required />
+          <div class="flex gap-2">
+            <button type="submit" class="btn-primary">Confirm</button>
+            <button type="button" class="btn-secondary" data-cancel>Cancel</button>
+          </div>
+        </form>
+        <div class="mt-4 space-y-2" data-new-key hidden>
+          <p class="notice-warn"><strong>Copy your new key now.</strong> It won’t be shown again. It replaces any previous key.</p>
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <label for="api-new-key" class="sr-only">New API key</label>
+            <input id="api-new-key" class="input font-mono text-sm" readonly />
+            <button type="button" class="btn-primary shrink-0" data-copy="api-new-key">Copy key</button>
+            <span class="sr-only" aria-live="polite" data-copy-status></span>
+          </div>
+        </div>
+        <p role="status" class="mt-3 text-sm" data-result></p>
+        <details class="mt-5 rounded-xl border border-line p-4 text-sm">
+          <summary class="cursor-pointer font-semibold">How to use the API</summary>
+          <p class="mt-3">
+            Send the key as a bearer token. It works for notes, requests and their activity, but never for account or security
+            settings.
+          </p>
+          <pre class="mt-3 overflow-x-auto rounded-lg bg-surface-muted p-3 font-mono text-xs"><code>curl https://YOUR-DOMAIN/api/account/records \
+  -H "Authorization: Bearer vn_…"</code></pre>
+          <p class="mt-3">
+            Notes are end-to-end encrypted, so your code encrypts before calling <code>POST /api/account/notes</code>, exactly as
+            the browser does (AES-256-GCM with a random key in the link’s <code>#</code>). Endpoints and formats are listed in
+            the project README.
+          </p>
+        </details>
+      </div>
+    </SettingsCard>
+
+    <SettingsCard id="billing-privacy" title="Billing & privacy" subtitle="Payment details, consent and account removal." icon={ICONS.card}>
+      <div class="space-y-3">
+        <a href="/app/contact?subject=Update%20payment%20details" class="btn-secondary w-full">Edit payment details</a>
+        <p class="-mt-1 text-center text-xs text-muted">Online card payments aren’t live yet: we’ll update your billing details by email.</p>
+        <button type="button" class="btn-secondary w-full" data-open-dialog="consent-dialog">
+          Terms & privacy consent
+          {!consentCurrent && <span class="badge bg-warn-soft text-warn">Review needed</span>}
+        </button>
+      </div>
+      <hr class="my-5 border-line" />
+      <div data-delete>
+        <button type="button" class="btn-danger w-full" data-delete-start>Delete account</button>
+        <p class="mt-2 text-center text-xs text-muted">Deletes your account and personal information. This cannot be undone.</p>
+        <form class="mt-4 space-y-3" data-form="delete" data-email={user.email} hidden novalidate>
+          <p class="notice-danger">
+            {
+              user.role === 'owner'
+                ? 'This deletes your account and your team, including every live note, request, attachment and all history.'
+                : 'This deletes your account. Notes you sent stay with the team until they expire.'
+            }
+          </p>
+          <div>
+            <label for="s-delete-password" class="field-label">Confirm with your password</label>
+            <input id="s-delete-password" name="password" type="password" class="input" autocomplete="current-password" required />
+          </div>
+          <p role="status" class="text-sm" data-result></p>
+          <button type="submit" class="btn-danger w-full">Permanently delete my account</button>
+        </form>
+      </div>
+    </SettingsCard>
+  </div>
+
+  <dialog id="consent-dialog" class="dialog max-w-lg" aria-labelledby="consent-title">
+    <div class="dialog-header">
+      <h2 id="consent-title" class="text-lg font-bold">Terms & privacy consent</h2>
+      <button type="button" class="btn min-h-10 px-3 text-side-ink" data-close-dialog aria-label="Close">✕</button>
+    </div>
+    <div class="dialog-body space-y-4 text-sm" data-consent>
+      <p>
+        {
+          security.termsAcceptedAt
+            ? `You accepted the terms of use and privacy policy dated ${security.termsVersion} on ${fmt(security.termsAcceptedAt)}.`
+            : 'We don’t have a record of you accepting our terms of use and privacy policy.'
         }
       </p>
-      <form class="mt-4 space-y-4" data-form="delete" data-email={user.email} novalidate>
-        <div>
-          <label for="s-delete-password" class="field-label">Confirm with your password</label>
-          <input id="s-delete-password" name="password" type="password" class="input" autocomplete="current-password" required />
-        </div>
-        <p role="status" class="text-sm" data-result></p>
-        <button type="submit" class="btn-danger">Delete my account</button>
-      </form>
-    </section>
-  </div>
+      {
+        consentCurrent ? (
+          <p class="notice-success">That’s the current version. Nothing to do.</p>
+        ) : (
+          <p class="notice-warn">The current version is dated {LEGAL_UPDATED}. Please review and accept it to keep using your account.</p>
+        )
+      }
+      <ul class="list-disc space-y-1 pl-5">
+        <li><a class="link" href="/terms" target="_blank" rel="noopener">Terms of use</a></li>
+        <li><a class="link" href="/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
+      </ul>
+      <p class="text-muted">
+        To withdraw your consent, delete your account. We then delete your personal information as the privacy policy
+        describes.
+      </p>
+      <p role="status" data-result></p>
+    </div>
+    <div class="dialog-footer">
+      <span></span>
+      <div class="flex gap-2">
+        <button type="button" class="btn-secondary" data-close-dialog>Close</button>
+        {!consentCurrent && <button type="button" class="btn-primary" data-accept-terms>I accept the current terms</button>}
+      </div>
+    </div>
+  </dialog>
 </App>
 
 <script>

@@ -50,6 +50,7 @@ export function initAuthForms(): void {
       errorBox.hidden = true;
       for (const input of form.querySelectorAll<HTMLInputElement>('input[required]')) {
         if (!input.checkValidity()) {
+          if (input.type === 'checkbox') return fail('Please accept the terms and privacy policy to continue.', input);
           const what = form.querySelector(`label[for="${input.id}"]`)?.textContent?.trim() ?? 'This field';
           return fail(
             input.type === 'email'
@@ -71,9 +72,22 @@ export function initAuthForms(): void {
         const authKey = field('password') ? await deriveAuthKey(email, field('password')!.value) : undefined;
         let result;
         if (kind === 'signup') {
-          result = await postJson('/api/auth/signup', { name: field('name')!.value.trim(), email, authKey, turnstileToken: turnstileToken(form) });
+          result = await postJson('/api/auth/signup', {
+            name: field('name')!.value.trim(),
+            email,
+            authKey,
+            acceptTerms: true,
+            turnstileToken: turnstileToken(form),
+          });
         } else if (kind === 'login') {
-          result = await postJson('/api/auth/login', { email, authKey });
+          result = await postJson<{ twoFactor?: boolean; challengeId?: string; message?: string }>('/api/auth/login', {
+            email,
+            authKey,
+          });
+          if (result.ok && result.data.twoFactor && result.data.challengeId) {
+            showLoginCodeStep(form, result.data.challengeId, result.data.message ?? 'Check your email for a sign-in code.');
+            return;
+          }
         } else if (kind === 'reset') {
           const token = location.hash.slice(1);
           result = await postJson('/api/auth/reset', { token, email, authKey });
@@ -107,6 +121,49 @@ export function initAuthForms(): void {
       }
     });
   }
+}
+
+/** Two-factor sign-in: swap the password form for the emailed-code form. */
+function showLoginCodeStep(passwordForm: HTMLFormElement, challengeId: string, message: string): void {
+  const form = document.querySelector<HTMLFormElement>('form[data-login-code]');
+  if (!form) return;
+  passwordForm.hidden = true;
+  form.hidden = false;
+  $('[data-code-message]', form).textContent = message;
+  const input = $<HTMLInputElement>('input[name="code"]', form);
+  const errorBox = $('[data-error]', form);
+  const submit = $<HTMLButtonElement>('button[type="submit"]', form);
+  input.focus();
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorBox.hidden = true;
+    const code = input.value.replace(/\D/g, '');
+    if (code.length !== 6) {
+      errorBox.textContent = 'Enter the 6-digit code from the email.';
+      errorBox.hidden = false;
+      input.focus();
+      return;
+    }
+    submit.disabled = true;
+    const result = await postJson('/api/auth/login/code', { challengeId, code });
+    if (result.ok) {
+      location.assign(afterLogin());
+      return;
+    }
+    submit.disabled = false;
+    errorBox.textContent = result.message;
+    errorBox.hidden = false;
+    if (result.error === 'code_expired') {
+      // Start over: back to email and password.
+      form.hidden = true;
+      passwordForm.hidden = false;
+      const passwordError = $('[data-error]', passwordForm);
+      passwordError.textContent = result.message;
+      passwordError.hidden = false;
+    } else {
+      input.select();
+    }
+  });
 }
 
 /** /verify#token: confirm on button press (never automatically). */

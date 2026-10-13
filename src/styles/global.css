@@ -18,6 +18,7 @@
   --accent-soft: #eceafd;
   --danger: #b42318;
   --danger-soft: #fdecea;
+  --danger-ink: #ffffff;
   --success: #05603a;
   --success-soft: #e6f4ec;
   --warn: #8a4b00;
@@ -47,6 +48,7 @@
     --accent-soft: #23264a;
     --danger: #fca5a5;
     --danger-soft: #3a1717;
+    --danger-ink: #2a0b0b;
     --success: #86efac;
     --success-soft: #11291c;
     --warn: #fcd34d;
@@ -71,6 +73,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warn: var(--warn);
@@ -141,7 +144,7 @@
     @apply btn border border-line bg-surface text-ink hover:bg-surface-muted;
   }
   .btn-danger {
-    @apply btn bg-danger text-white hover:opacity-90;
+    @apply btn bg-danger text-danger-ink hover:opacity-90;
   }
   .field-label {
     @apply mb-1.5 block text-sm font-semibold;
