@@ -1,5 +1,6 @@
 import { sealNote, utf8ByteLength } from '../../lib/crypto';
 import { MAX_NOTE_BYTES } from '../../lib/limits';
+import { initCipherPreview } from '../cipher-preview';
 import { postForm, postJson } from '../http-client';
 import { $, cooldown, formatBytes, guardUnload, initCopyButtons, initShareButtons, showState } from '../ui';
 
@@ -72,6 +73,8 @@ export function initCreateNoteDialog(): void {
   };
   initCopyButtons(dialog, saved);
   initShareButtons(dialog, 'I sent you a private note:', saved);
+
+  initCipherPreview(text, $('[data-cipher-output]', dialog));
 
   text.addEventListener('input', () => {
     const bytes = utf8ByteLength(text.value);

@@ -1,4 +1,5 @@
 ---
+import LinkAnatomy from '../components/LinkAnatomy.astro';
 import Prose from '../layouts/Prose.astro';
 import { SECURITY_EMAIL } from '../lib/site';
 ---
@@ -6,9 +7,11 @@ import { SECURITY_EMAIL } from '../lib/site';
 <Prose
   title="Security model"
   description="What Vanishnote's servers can and cannot see, the cryptography we use, and the threats it does and doesn't protect against."
-  heading="Security model"
-  lead="We'd rather tell you exactly what we can and can't protect against than make promises nobody can keep."
+  heading="We can’t read your notes. Here’s exactly why."
+  lead="Not because we promise not to look, but because we never get the key. This page sets out what our servers see, what they never see, and the limits of what that protects against."
 >
+  <LinkAnatomy class="mb-10" />
+
   <h2>What our servers see</h2>
   <ul>
     <li>The encrypted note (ciphertext), its 96-bit IV, and, for password-protected notes, a random salt.</li>

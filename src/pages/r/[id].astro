@@ -5,6 +5,7 @@
  * key is detected before anything is encrypted.
  */
 import BrandHeader from '../../components/BrandHeader.astro';
+import ZeroKnowledgeBadge from '../../components/ZeroKnowledgeBadge.astro';
 import Base from '../../layouts/Base.astro';
 import { MAX_NOTE_BYTES } from '../../lib/limits';
 import { formatMB } from '../../lib/plans';
@@ -41,6 +42,7 @@ const Wrapper = brand ? 'main' : 'div';
         ) : (
           <>
             <div data-state="form">
+              <ZeroKnowledgeBadge text={`Only ${request.requester} can read your reply`} class="mb-4" />
               <p class="text-sm font-semibold text-accent">Secure request from {sender}</p>
               <h1 class="mt-1 text-2xl font-bold tracking-tight" tabindex="-1" data-focus>
                 {request.title}

@@ -1,4 +1,5 @@
 ---
+import LinkAnatomy from '../components/LinkAnatomy.astro';
 import Prose from '../layouts/Prose.astro';
 ---
 
@@ -6,7 +7,7 @@ import Prose from '../layouts/Prose.astro';
   title="How it works"
   description="How Vanishnote encrypts your note in the browser, keeps the key out of our reach, and deletes the note the moment it's read."
   heading="How Vanishnote works"
-  lead="The short version: your browser locks the note, the key rides in the link, and we only ever hold the locked box until someone opens it."
+  lead="The short version: your browser locks the note, the only key rides in the link, and we only ever hold a locked box we have no way to open."
 >
   <h2>1. Your browser encrypts the note</h2>
   <p>
@@ -22,12 +23,11 @@ import Prose from '../layouts/Prose.astro';
   </p>
 
   <h2>3. The key travels in the link, after the #</h2>
-  <p>A Vanishnote link looks like this:</p>
-  <p><code>https://vanishnote.example/n/<em>note-id</em>#<em>key</em></code></p>
+  <LinkAnatomy class="mb-4" />
   <p>
     Everything after the <code>#</code> is called the fragment. Browsers keep the fragment to themselves: it's not
     included when the page is requested from our server, so the key goes from your device to your recipient's without
-    passing through us.
+    passing through us. Without it, what we store is just scrambled data.
   </p>
 
   <h2>4. Opening the link doesn't burn the note. Pressing Reveal does.</h2>

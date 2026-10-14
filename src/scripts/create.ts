@@ -1,6 +1,7 @@
 import { encryptNote, utf8ByteLength } from '../lib/crypto';
 import { MAX_NOTE_BYTES, type ExpiryOption } from '../lib/limits';
 import { createNote } from './api-client';
+import { initCipherPreview } from './cipher-preview';
 import {
   $,
   cooldown,
@@ -42,6 +43,8 @@ export function initCreateForm(): void {
     errorBox.hidden = false;
     focus?.focus();
   };
+
+  initCipherPreview(text, $('[data-cipher-output]', root));
 
   text.addEventListener('input', () => {
     const bytes = utf8ByteLength(text.value);

@@ -1,0 +1,33 @@
+---
+/**
+ * A share link split into the part our server receives (the note's address) and the part it
+ * never does (the key after the #).
+ */
+interface Props {
+  class?: string;
+}
+const { class: className } = Astro.props;
+const host = Astro.site?.host ?? 'vanishnote.example';
+---
+
+<figure class:list={['rounded-2xl border border-line bg-surface p-5 sm:p-6', className]}>
+  <figcaption class="font-semibold">Anatomy of a Vanishnote link</figcaption>
+  <p class="mt-4 overflow-x-auto rounded-xl bg-surface-muted p-4 font-mono text-sm break-all sm:text-base">
+    <span class="text-muted">https://</span><span class="rounded bg-accent-soft px-1 text-accent">{host}/n/3q2-7wLk0aZb1xYcPn8T4g</span><span
+      class="rounded bg-success-soft px-1 font-bold text-success">#Vx4mP9qL2rT8wZ0kB5nH7cJ3fD6sA1yE</span
+    >
+  </p>
+  <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+    <div class="rounded-xl border border-accent/30 p-3">
+      <dt class="font-semibold text-accent">The address</dt>
+      <dd class="mt-1 text-muted">Sent to our server so it can find the locked note. On its own it unlocks nothing.</dd>
+    </div>
+    <div class="rounded-xl border border-success/40 p-3">
+      <dt class="font-semibold text-success">The key, after the #</dt>
+      <dd class="mt-1 text-muted">
+        Made in your browser. Browsers never send this part to a server, so it goes from you to your recipient and never
+        reaches us.
+      </dd>
+    </div>
+  </dl>
+</figure>

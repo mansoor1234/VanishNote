@@ -28,7 +28,7 @@ const page = (headline, sub) => `<!doctype html><html><head><style>
 </body></html>`;
 
 const cards = {
-  'og.png': page("Send a secret that vanishes once it's read.", 'Encrypted in your browser · Burn after reading · No sign-up'),
+  'og.png': page("Notes even we can't read.", 'Encrypted in your browser · Destroyed after reading · No sign-up'),
   'og-note.png': page('🔒 A private note for you', 'Encrypted · Opens once · No account needed'),
 };
 

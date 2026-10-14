@@ -1,0 +1,21 @@
+---
+/** The product's core promise, stated the same way everywhere: we can't read what you send. */
+interface Props {
+  text?: string;
+  class?: string;
+}
+const { text = 'End-to-end encrypted. We can’t read it.', class: className } = Astro.props;
+---
+
+<p
+  class:list={[
+    'inline-flex items-center gap-2 rounded-full border border-success/40 bg-success-soft px-3 py-1 text-sm font-semibold text-success',
+    className,
+  ]}
+>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="4" y="10" width="16" height="11" rx="2.5"></rect>
+    <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+  </svg>
+  <span>{text}</span>
+</p>

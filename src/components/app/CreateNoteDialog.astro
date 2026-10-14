@@ -13,7 +13,10 @@ const timed = (Object.keys(TIMED_EXPIRY_DAYS) as TimedExpiry[]).map((key) => ({
 
 <dialog id="create-note" class="dialog" aria-labelledby="create-note-title" data-attachment-limit={plan.limits.attachmentBytes}>
   <div class="dialog-header">
-    <h2 id="create-note-title" class="text-lg font-bold">New note</h2>
+    <div class="flex flex-wrap items-center gap-3">
+      <h2 id="create-note-title" class="text-lg font-bold">New note</h2>
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-side-active px-2.5 py-0.5 text-xs font-semibold text-side-accent">🔒 Encrypted on this device. We can’t read it.</span>
+    </div>
     <button type="button" class="btn min-h-10 px-3 text-side-ink" data-close-dialog aria-label="Close">✕</button>
   </div>
 
@@ -101,6 +104,10 @@ const timed = (Object.keys(TIMED_EXPIRY_DAYS) as TimedExpiry[]).map((key) => ({
               spellcheck="false"
               aria-describedby="cn-size"></textarea>
             <p id="cn-size" class="field-hint"><span data-size>0 B</span> of {MAX_NOTE_BYTES / 1024} KB</p>
+            <div class="mt-2 rounded-xl border border-dashed border-line bg-surface p-3">
+              <p class="text-xs font-semibold tracking-wide text-muted uppercase">What our server will receive</p>
+              <p class="mt-1 max-h-12 overflow-hidden font-mono text-xs break-all text-muted" aria-hidden="true" data-cipher-output>Start typing to see it scrambled…</p>
+            </div>
           </div>
 
           <div>
