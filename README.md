@@ -93,7 +93,7 @@ public pages are in `src/lib/site.ts`. After changing `wrangler.toml`, run `npm 
 
 ```sh
 npx wrangler login
-npx wrangler d1 create vanishnote     # copy the database_id into wrangler.toml
+npx wrangler d1 create vanishnote-db  # copy the database_id into wrangler.toml
 npx wrangler r2 bucket create vanishnote-files
 npm run db:migrate:remote
 npx wrangler secret put RESEND_API_KEY

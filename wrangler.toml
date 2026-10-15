@@ -5,23 +5,27 @@ main = "./src/worker.ts"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_als"]
 
+routes = [
+	{ pattern = "vanishnote.net", custom_domain = true },
+	{ pattern = "www.vanishnote.net", custom_domain = true },
+]
+
 # Workers Logs record every request URL, and our URLs contain note IDs.
 # Keep invocation logging off so note IDs never land in a log store.
 [observability]
 enabled = false
 
 [vars]
-# Local default (wrangler dev / npm run preview port). Set your real origin before deploying.
-APP_URL = "http://localhost:8787"
+APP_URL = "https://vanishnote.net"
 # Must be an address on a domain verified in Resend.
-EMAIL_FROM = "Vanishnote <notify@example.com>"
+EMAIL_FROM = "VanishNote <notify@vanishnote.net>"
 # Cloudflare Turnstile site key (public). This is Cloudflare's always-pass test key; replace in production.
-TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+TURNSTILE_SITE_KEY = "0x4AAAAAAFXWh1b_aO-pNpxf"
 # Web Push VAPID public key (base64url, 65-byte uncompressed P-256). Generate with `node scripts/generate-vapid.mjs`.
 VAPID_PUBLIC_KEY = ""
-VAPID_SUBJECT = "mailto:hello@vanishnote.example"
+VAPID_SUBJECT = "mailto:hello@vanishnote.net"
 # Secrets (wrangler secret put / .dev.vars): RESEND_API_KEY, TURNSTILE_SECRET_KEY, VAPID_PRIVATE_KEY
-
+workers_dev = false
 # Encrypted attachments (D1 can't hold values over ~2 MB). Only ciphertext is stored here.
 [[r2_buckets]]
 binding = "FILES"
@@ -29,10 +33,12 @@ bucket_name = "vanishnote-files"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "vanishnote"
-# Replace with the id printed by `wrangler d1 create vanishnote`.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_name = "vanishnote-db"
+database_id = "4065f83d-45a0-43de-9015-a9efe492a511"
 migrations_dir = "migrations"
+
+
+
 
 # Hourly cleanup of expired notes.
 [triggers]
