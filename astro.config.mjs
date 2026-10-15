@@ -4,8 +4,9 @@ import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 
-// Canonical origin for SEO tags, sitemap and robots.txt. Set APP_URL when building for production.
-const site = process.env.APP_URL || 'https://vanishnote.example';
+// Canonical origin for SEO tags, sitemap and robots.txt. Baked in at build time, so it defaults
+// to the production domain; set APP_URL in the build env to build for another origin.
+const site = process.env.APP_URL || 'https://vanishnote.net';
 
 // Pages are prerendered by default (static marketing/SEO pages). Note pages and the API opt
 // out with `export const prerender = false` and run on the Worker. This is Astro's

@@ -7,7 +7,7 @@ published: 2026-10-06
 Look closely at a Vanishnote link and you'll see two parts separated by a `#`:
 
 ```
-https://vanishnote.example/n/3q2-7wLk0aZb1xYcPn8T4g#Vx4…long-random-string…
+https://vanishnote.net/n/3q2-7wLk0aZb1xYcPn8T4g#Vx4…long-random-string…
 ```
 
 The part before the `#` identifies the note. The part after it is the decryption key. That split is the reason we can deliver your note without ever being able to read it.

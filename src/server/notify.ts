@@ -22,7 +22,7 @@ export function notifyUser(
       const vapid = {
         publicKey: env.VAPID_PUBLIC_KEY,
         privateKey: env.VAPID_PRIVATE_KEY,
-        subject: env.VAPID_SUBJECT || 'mailto:hello@vanishnote.example',
+        subject: env.VAPID_SUBJECT || 'mailto:hello@vanishnote.net',
       };
       const subs = await env.DB.prepare('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?1')
         .bind(userId)

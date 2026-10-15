@@ -75,10 +75,10 @@ exercise the real database engine.
 
 | Name                   | Where                          | Purpose |
 | ---------------------- | ------------------------------ | ------- |
-| `APP_URL`              | `wrangler.toml` **and** build env | Public origin, e.g. `https://vanishnote.app`. Build: canonical URLs, sitemap. Runtime: links in emails. |
+| `APP_URL`              | `wrangler.toml` **and** build env | Public origin, `https://vanishnote.net`. Build: canonical URLs, sitemap (defaults to the production domain in `astro.config.mjs`). Runtime: links in emails. Overridden locally in `.dev.vars`. |
 | `EMAIL_FROM`           | `wrangler.toml`                | Sender on a domain verified in Resend |
 | `RESEND_API_KEY`       | secret                         | Resend API key. Unset: no emails are sent (sign-up can't be verified). |
-| `TURNSTILE_SITE_KEY`   | `wrangler.toml`                | Turnstile site key (public). Ships with Cloudflare's test key. |
+| `TURNSTILE_SITE_KEY`   | `wrangler.toml`                | Turnstile site key (public). Production key in `wrangler.toml`; Cloudflare's test key in `.dev.vars` locally. |
 | `TURNSTILE_SECRET_KEY` | secret                         | Turnstile secret. **Required in production**: without it, sign-up fails closed off localhost. |
 | `VAPID_PUBLIC_KEY`     | `wrangler.toml`                | Web Push public key. Empty: push is turned off (email still works). |
 | `VAPID_PRIVATE_KEY`    | secret                         | Web Push private key. Generate both with `node scripts/generate-vapid.mjs`. |
@@ -93,15 +93,16 @@ public pages are in `src/lib/site.ts`. After changing `wrangler.toml`, run `npm 
 
 ```sh
 npx wrangler login
-npx wrangler d1 create vanishnote     # copy the database_id into wrangler.toml
+npx wrangler d1 create vanishnote-db     # copy the database_id into wrangler.toml
 npx wrangler r2 bucket create vanishnote-files
 npm run db:migrate:remote
 npx wrangler secret put RESEND_API_KEY
 npx wrangler secret put TURNSTILE_SECRET_KEY   # and set TURNSTILE_SITE_KEY in wrangler.toml
 node scripts/generate-vapid.mjs                # put the public key in wrangler.toml, then:
 npx wrangler secret put VAPID_PRIVATE_KEY
-# set APP_URL, EMAIL_FROM, VAPID_SUBJECT in wrangler.toml, then:
-APP_URL=https://your-domain npm run deploy
+# set APP_URL, EMAIL_FROM, VAPID_SUBJECT in wrangler.toml (and the site default in
+# astro.config.mjs if the domain changes), then:
+npm run deploy
 ```
 
 The hourly cron expires notes and requests, enforces each plan's retention on history, clears
@@ -144,7 +145,7 @@ Billing isn't connected yet. Upgrade requests arrive through the dashboard's Con
 (subject "Upgrade to …"). Apply them with SQL:
 
 ```sh
-npx wrangler d1 execute vanishnote --remote --command \
+npx wrangler d1 execute vanishnote-db --remote --command \
   "UPDATE teams SET plan = 'standard', seats = 5 WHERE id = (SELECT team_id FROM users WHERE email = 'owner@company.com')"
 ```
 

@@ -7,7 +7,7 @@ interface Props {
   class?: string;
 }
 const { class: className } = Astro.props;
-const host = Astro.site?.host ?? 'vanishnote.example';
+const host = Astro.site?.host ?? 'vanishnote.net';
 ---
 
 <figure class:list={['rounded-2xl border border-line bg-surface p-5 sm:p-6', className]}>

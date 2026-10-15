@@ -1,6 +1,6 @@
 /** Operator details shown on public pages. Change these before launch. */
-export const CONTACT_EMAIL = 'hello@vanishnote.example';
-export const SECURITY_EMAIL = 'security@vanishnote.example';
+export const CONTACT_EMAIL = 'hello@vanishnote.net';
+export const SECURITY_EMAIL = 'security@vanishnote.net';
 export const LEGAL_UPDATED = '2026-10-12';
 
 /**

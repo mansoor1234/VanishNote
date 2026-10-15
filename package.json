@@ -15,8 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "db:migrate:local": "wrangler d1 migrations apply vanishnote --local",
-    "db:migrate:remote": "wrangler d1 migrations apply vanishnote --remote",
+    "db:migrate:local": "wrangler d1 migrations apply vanishnote-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply vanishnote-db --remote",
     "deploy": "astro build && wrangler deploy",
     "cf-typegen": "wrangler types --strict-vars=false"
   },

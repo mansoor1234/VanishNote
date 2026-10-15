@@ -5,21 +5,34 @@ main = "./src/worker.ts"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_als"]
 
+# Serve only on the custom domains below, not on *.workers.dev.
+workers_dev = false
+routes = [
+	{ pattern = "vanishnote.net", custom_domain = true },
+	{ pattern = "www.vanishnote.net", custom_domain = true },
+]
+
+# Without this, `wrangler dev` rewrites local request URLs to the first route's host
+# (vanishnote.net), which switches off the localhost-only dev paths (Turnstile bypass, outbox).
+[dev]
+host = "localhost"
+
 # Workers Logs record every request URL, and our URLs contain note IDs.
 # Keep invocation logging off so note IDs never land in a log store.
 [observability]
 enabled = false
 
+# Production values. Local dev overrides APP_URL and TURNSTILE_SITE_KEY in .dev.vars
+# (see .dev.vars.example); the e2e server overrides them with --var.
 [vars]
-# Local default (wrangler dev / npm run preview port). Set your real origin before deploying.
-APP_URL = "http://localhost:8787"
+APP_URL = "https://vanishnote.net"
 # Must be an address on a domain verified in Resend.
-EMAIL_FROM = "Vanishnote <notify@example.com>"
-# Cloudflare Turnstile site key (public). This is Cloudflare's always-pass test key; replace in production.
-TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+EMAIL_FROM = "VanishNote <notify@vanishnote.net>"
+# Cloudflare Turnstile site key (public). Only works on vanishnote.net; local dev uses the test key.
+TURNSTILE_SITE_KEY = "0x4AAAAAAFXWh1b_aO-pNpxf"
 # Web Push VAPID public key (base64url, 65-byte uncompressed P-256). Generate with `node scripts/generate-vapid.mjs`.
-VAPID_PUBLIC_KEY = ""
-VAPID_SUBJECT = "mailto:hello@vanishnote.example"
+VAPID_PUBLIC_KEY = "BOJJAdZR3HBusqq_K0QiwlPtq9-aOUEq1xsHkouij8RJFudIJlRh92o_U-sU1pE8P9f2Xeij2Wygj8aCocIFRmk"
+VAPID_SUBJECT = "mailto:hello@vanishnote.net"
 # Secrets (wrangler secret put / .dev.vars): RESEND_API_KEY, TURNSTILE_SECRET_KEY, VAPID_PRIVATE_KEY
 
 # Encrypted attachments (D1 can't hold values over ~2 MB). Only ciphertext is stored here.
@@ -29,9 +42,8 @@ bucket_name = "vanishnote-files"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "vanishnote"
-# Replace with the id printed by `wrangler d1 create vanishnote`.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_name = "vanishnote-db"
+database_id = "4065f83d-45a0-43de-9015-a9efe492a511"
 migrations_dir = "migrations"
 
 # Hourly cleanup of expired notes.

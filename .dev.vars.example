@@ -1,3 +1,7 @@
 # Copy to .dev.vars for local development. Never commit .dev.vars.
+# wrangler.toml holds production values; these override them on your machine.
+APP_URL=http://localhost:8787
+# Cloudflare's always-pass test key (the real one only works on the production domain).
+TURNSTILE_SITE_KEY=1x00000000000000000000AA
 # Leave empty to disable read-notification emails locally.
 RESEND_API_KEY=

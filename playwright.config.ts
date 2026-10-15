@@ -19,7 +19,10 @@ export default defineConfig({
   // Runs the production build on workerd with a local D1, exactly as it will be deployed.
   webServer: {
     // DEV_OUTBOX writes emails to D1 (readable at /api/dev/outbox) so tests can follow verification links.
-    command: `npm run build && npm run db:migrate:local && npx wrangler dev --port ${PORT} --ip 127.0.0.1 --var DEV_OUTBOX:true`,
+    // wrangler.toml holds production vars; point emails at this server and use Turnstile's test key.
+    command:
+      `npm run build && npm run db:migrate:local && npx wrangler dev --port ${PORT} --ip 127.0.0.1 --var DEV_OUTBOX:true` +
+      ` --var APP_URL:http://127.0.0.1:${PORT} --var TURNSTILE_SITE_KEY:1x00000000000000000000AA`,
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: !process.env['CI'],
     timeout: 180_000,

@@ -84,7 +84,7 @@ npx wrangler dev --var DEV_OUTBOX:true   # http://localhost:8787
 - Code changes require a new `npm run build`, then restarting `wrangler dev`.
 - `npm run test:e2e` rebuilds `dist/`, which kills any running `wrangler dev` on 8787. Restart it
   afterwards.
-- To query the local DB: `npx wrangler d1 execute vanishnote --local --command "SELECT …"`
+- To query the local DB: `npx wrangler d1 execute vanishnote-db --local --command "SELECT …"`
 
 ## 5. Repository map
 

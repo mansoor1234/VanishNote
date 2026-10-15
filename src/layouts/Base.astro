@@ -20,7 +20,7 @@ interface Props {
 }
 
 const { title, description, privatePage = false, ogType = 'website', jsonLd, chrome = 'site', titleSuffix } = Astro.props;
-const site = Astro.site ?? new URL('https://vanishnote.example');
+const site = Astro.site ?? new URL('https://vanishnote.net');
 const canonical = new URL(cleanPath(Astro.url.pathname), site).href;
 const ogImagePath = Astro.props.ogImage ?? (privatePage ? undefined : '/og.png');
 const ogImage = ogImagePath ? new URL(ogImagePath, site).href : undefined;
