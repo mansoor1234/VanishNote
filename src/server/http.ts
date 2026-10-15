@@ -1,3 +1,4 @@
+import { PRIVATE_PATH } from '../lib/private-paths';
 import type { ErrorResponse } from '../lib/schema';
 
 /**
@@ -49,7 +50,7 @@ export const PRIVATE_HEADERS: Readonly<Record<string, string>> = {
 
 /** Never cached, never indexed: notes, requests, the API, the dashboard and one-time token pages. */
 export function isPrivatePath(pathname: string): boolean {
-  return /^\/(n|d|r|api|app|verify|reset|join|forgot)(\/|$)/.test(pathname);
+  return PRIVATE_PATH.test(pathname);
 }
 
 export function json(body: unknown, status = 200, extra?: Record<string, string>): Response {

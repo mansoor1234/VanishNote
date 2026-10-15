@@ -3,6 +3,7 @@ import cloudflare from '@astrojs/cloudflare';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
+import { PRIVATE_PATH } from './src/lib/private-paths.ts';
 
 // Canonical origin for SEO tags, sitemap and robots.txt. Baked in at build time, so it defaults
 // to the production domain; set APP_URL in the build env to build for another origin.
@@ -25,8 +26,9 @@ export default defineConfig({
   // Shiki emits inline style attributes, which our CSP (style-src 'self') blocks.
   markdown: { syntaxHighlight: false },
   integrations: [
+    // Only indexable pages: listing a noindex page in the sitemap is a conflict search engines flag.
     sitemap({
-      filter: (page) => !/\/(n|d|api)(\/|$)/.test(new URL(page).pathname),
+      filter: (page) => !PRIVATE_PATH.test(new URL(page).pathname),
     }),
   ],
   vite: {
