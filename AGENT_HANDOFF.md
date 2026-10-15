@@ -245,26 +245,34 @@ scripts/           generate-og.mjs (social images and push icon), generate-vapid
   `Origin` header pass. That's intended.
 - `build.format: 'file'` makes prerendered pathnames end in `.html`. Use `cleanPath()` for
   canonical URLs and nav state.
-- `APP_URL` is used for links in emails, never the request Host header. Locally it is
-  `http://localhost:8787`.
+- `APP_URL` is used for links in emails, never the request Host header. `wrangler.toml` holds
+  the production value; locally `.dev.vars` overrides it (and the Turnstile key) and the e2e
+  server overrides both with `--var`. The build-time `site` (canonical, sitemap) defaults to
+  `https://vanishnote.net` in `astro.config.mjs`.
+- **`[dev] host = "localhost"` must stay in `wrangler.toml`.** Without it, the custom-domain
+  `routes` make `wrangler dev` rewrite request URLs to `vanishnote.net`, which silently turns off
+  the localhost-only paths (Turnstile bypass, dev outbox) and breaks local sign-up.
+- `PRIVATE_PATH` (`src/lib/private-paths.ts`) drives both the noindex headers and the sitemap
+  filter. Add new private routes there.
 - Turnstile's script loads only on pages using `Auth.astro` with `turnstile` set, and the CSP for
   those paths is `TURNSTILE_CSP`.
 
 ## 12. Open items and decisions waiting on the user
 
-- **Hosting decision (latest discussion):** the user wants **no monthly bills**, with a yearly
-  budget of about 10,000 PKR (~$35). The recommendation was **Cloudflare free plans (Workers, D1,
-  R2, Turnstile) plus Resend free plus a yearly domain (~3,000 PKR)**, with no code changes. The
-  risk is the Workers Free CPU limit per request (error 1102). The fallback is porting to a
-  yearly VPS (Node adapter, SQLite file, disk storage, node-cron, an in-process rate limiter),
-  which would take a few days. The user hasn't chosen a domain yet.
-- **Not deployed yet.** Before deploying, these placeholders must be filled:
-  - `database_id` in `wrangler.toml`;
-  - `APP_URL`, `EMAIL_FROM`, `TURNSTILE_SITE_KEY`, `VAPID_*` and a `[[routes]]` custom domain;
-  - the secrets `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY` and `VAPID_PRIVATE_KEY`;
-  - the contact addresses in `src/lib/site.ts`.
-
-  The steps are in the README's "Deploy" section.
+- **Live in production at https://vanishnote.net** (deployed 2026-10-15) on Cloudflare's free
+  plans (Workers, D1 `vanishnote-db`, R2 `vanishnote-files`, Turnstile) plus Resend. The user
+  wants **no monthly bills** (yearly budget ~10,000 PKR). The risk is the Workers Free CPU limit
+  per request (error 1102); the fallback is a yearly VPS port (a few days' work).
+  - Deploy: `npm run deploy` (builds and runs `wrangler deploy`). Migrations:
+    `npm run db:migrate:remote`. Always ask the user before deploying.
+  - Secrets set: `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `VAPID_PRIVATE_KEY`.
+  - `workers_dev = false`; custom domains `vanishnote.net` and `www.vanishnote.net`.
+  - Dashboard-only settings (not in the repo): Single Redirect rules `www` → apex and
+    `http` → `https` (both 301, query string preserved); Email Routing forwards `hello@`,
+    `security@` (and possibly `notify@`) to the user's Gmail. Resend's sending records live on
+    `send.vanishnote.net` and `resend._domainkey`; don't touch them.
+  - Still to do by the user: submit `https://vanishnote.net/sitemap-index.xml` in Google
+    Search Console.
 - **NoteShred API parity gaps (offered, not done):**
   1. a "shred" endpoint that destroys the content but keeps the record (status `destroyed`);
   2. an optional `message` on `/api/account/notes/:id/send`.
@@ -274,13 +282,17 @@ scripts/           generate-og.mjs (social images and push icon), generate-vapid
   as breaking the core promise. Don't do it without explicit user approval.**
 - **Billing (Stripe) is not connected.** Plans are set by SQL; Stripe was deliberately postponed.
 - **Not verified end to end against real services:** Resend delivery, Turnstile with real keys,
-  Web Push delivery to a real device, and R2/cron in production.
+  Web Push delivery to a real device, and R2/cron in production. (Inbound mail to `hello@` and
+  `security@` is verified.)
+- **Flaky e2e:** a sign-up once failed with "Something went wrong" and passed on re-run; cause
+  unknown.
 - **The legal pages** (terms, privacy) are sensible drafts, not lawyer-reviewed.
 
 ## 13. Local state and user preferences
 
-- **The user's local account** is `m.mansoorbahadur@techleadz.com`, manually verified and set to the
-  **business** plan in the local D1. It hasn't re-accepted the terms, so it shows "Review needed".
+- **Local D1 was reset** when `database_id` changed to the production one, so the old local
+  account (`m.mansoorbahadur@techleadz.com`, business plan) no longer exists locally. Recreate it
+  if needed. The Cloudflare account is mansoorbahadur1234@gmail.com.
 - **No approval needed for file edits** in this repo; the user said not to ask. Still confirm
   deploys, deleting data, and anything sent to real people.
 - **Commit in logical steps** and end commit messages with the attribution trailer
