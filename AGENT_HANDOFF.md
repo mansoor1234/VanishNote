@@ -46,7 +46,11 @@ Two ways to use it:
    `<script>` except JSON-LD data blocks. Astro bundles `<script>` tags into external files, so
    that is fine. Shiki is disabled because it emits inline styles. Turnstile's origin is allowed
    only on `/signup`, `/forgot` and `/verify`.
-7. **No third-party scripts, fonts or analytics**, especially on `/n/*`, `/r/*` and `/d/*`.
+7. **No third-party scripts or fonts on any page that handles notes, keys or passwords** (`/`,
+   `/n/*`, `/r/*`, `/d/*`, `/app/*`, login/sign-up). The only exceptions are path-scoped:
+   Turnstile on `/signup`, `/forgot`, `/verify`, and opt-in Google Analytics on the information
+   pages in `ANALYTICS_PATHS` (`src/lib/analytics.ts`). Never widen that list to a page with
+   a note form, a note link or a password field.
 8. **Never log request bodies, full note IDs or email addresses.** Workers observability is
    deliberately **off** in `wrangler.toml`, because request URLs contain note IDs.
 9. **`noindex` and `no-store` on every private path:** `/n /d /r /api /app /verify /reset /join

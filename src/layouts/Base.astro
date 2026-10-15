@@ -1,7 +1,9 @@
 ---
 import '../styles/global.css';
+import AnalyticsConsent from '../components/AnalyticsConsent.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import { isAnalyticsPath } from '../lib/analytics';
 import { cleanPath } from '../lib/site';
 
 interface Props {
@@ -32,6 +34,8 @@ const fullTitle = title.includes(suffix) ? title : `${title} · ${suffix}`;
 // JSON-LD is a data block, not executable script, so it is allowed under script-src 'self'.
 // Escape "<" so content can never close the script element.
 const ldJson = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefined;
+// Information pages only; never a page that handles notes or passwords (see lib/analytics.ts).
+const analytics = !privatePage && isAnalyticsPath(cleanPath(Astro.url.pathname));
 ---
 
 <!doctype html>
@@ -97,5 +101,6 @@ const ldJson = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefi
         <slot />
       )
     }
+    {analytics && <AnalyticsConsent />}
   </body>
 </html>

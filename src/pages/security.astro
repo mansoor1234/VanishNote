@@ -50,7 +50,11 @@ import { SECURITY_EMAIL } from '../lib/site';
     <li>A strict Content Security Policy: only our own scripts run, and no inline scripts.</li>
     <li><code>Referrer-Policy: no-referrer</code>, so note URLs are never passed to other sites.</li>
     <li>Note pages and API responses are marked <code>no-store</code> and <code>noindex</code>.</li>
-    <li>No analytics, ads, third-party fonts or third-party scripts anywhere.</li>
+    <li>
+      No third-party scripts on any page that handles notes or passwords: the home page, note, request and destroy links,
+      the dashboard, and log-in and sign-up (apart from Cloudflare Turnstile’s bot check on sign-up). No ads or
+      third-party fonts anywhere. Our information pages offer Google Analytics, which loads only if you allow it.
+    </li>
     <li>Decrypted text is displayed as plain text, never interpreted as HTML.</li>
     <li>We don't log request bodies, full note IDs or email addresses, and request logging is switched off at the platform level.</li>
   </ul>

@@ -32,7 +32,7 @@ The key travels from your browser to your recipient's browser inside the link it
 Fragments are private by default, but not magic. A few things deserve attention:
 
 - **Referrer headers.** When you click a link from a page, the browser may tell the next site where you came from. Modern browsers strip fragments from referrers, and Vanishnote also sets `Referrer-Policy: no-referrer`, so nothing is shared.
-- **Scripts on the page.** JavaScript running on a page can read the fragment. That's why Vanishnote loads no third-party scripts: no analytics, no ads, no embedded widgets. Only our own code runs.
+- **Scripts on the page.** JavaScript running on a page can read the fragment. That's why Vanishnote's note pages load no third-party scripts: no analytics, no ads, no embedded widgets. Only our own code runs there.
 - **Wherever the link itself goes.** The fragment is part of the link, so anyone who sees the full link has the key. That's why a password, sent through a different channel, is a useful second lock.
 
 ## Why not just send the key separately?

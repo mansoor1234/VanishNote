@@ -123,8 +123,13 @@ password or tampered byte gives the same `DecryptionError`.
   `Permissions-Policy`, COOP/CORP `same-origin`.
 - `/n/*`, `/d/*`, `/r/*`, `/app/*`, `/api/*` and token pages: `Cache-Control: no-store` and
   `X-Robots-Tag: noindex`.
-- No third-party scripts, fonts or analytics, except Cloudflare Turnstile on `/signup`,
-  `/forgot` and `/verify` (CSP allows its origin on those paths only). Never on note pages.
+- No third-party scripts or fonts, with two path-scoped exceptions, each allowed by the CSP
+  on its own paths only:
+  - Cloudflare Turnstile on `/signup`, `/forgot` and `/verify`;
+  - Google Analytics on the information pages in `ANALYTICS_PATHS` (`src/lib/analytics.ts`:
+    pricing, FAQ, how it works, security, privacy, terms, blog), and only after the visitor
+    opts in. Never on `/`, note, request or destroy pages, the dashboard, or log-in/sign-up, so
+    no third-party code can read a link fragment, note text or password.
 - Push is only sent to known push-service hosts (no SSRF through subscription endpoints).
 - Decrypted attachments are always saved as downloads (`application/octet-stream`), never
   rendered, and file names are sanitised.

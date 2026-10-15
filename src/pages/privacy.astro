@@ -53,9 +53,24 @@ import { CONTACT_EMAIL, LEGAL_UPDATED } from '../lib/site';
 
   <h2>Cookies</h2>
   <p>
-    If you log in, we set one cookie that keeps you signed in. That’s the only cookie we set. No tracking, advertising or
-    analytics cookies, ever.
+    If you log in, we set a cookie that keeps you signed in, and a second one that remembers this device so we don’t ask
+    for a sign-in code every time. We never set advertising cookies. Google Analytics sets its own cookies only if you
+    allow it, as described below.
   </p>
+
+  <h2 id="analytics">Analytics</h2>
+  <p>
+    On our information pages (pricing, FAQ, how it works, security, the blog and our legal pages) we ask whether you’ll
+    allow Google Analytics. If you say yes, Google receives the page address, your browser and device type, an
+    approximate location, and a random identifier stored in a <code>_ga</code> cookie, so we can see which pages are
+    useful. If you say no, nothing from Google loads.
+  </p>
+  <p>
+    Google Analytics never runs on the pages that handle your notes or passwords: the home page where you write a note,
+    note and request links, destroy links, the dashboard, and the log-in and sign-up pages. Those pages only load our own
+    code, so no third party can read a note, its key or your password.
+  </p>
+  <p><button type="button" class="btn-secondary" data-consent-change>Change my analytics choice</button></p>
 
   <h2>Technical data</h2>
   <p>
@@ -68,13 +83,14 @@ import { CONTACT_EMAIL, LEGAL_UPDATED } from '../lib/site';
   <ul>
     <li>Never your notes’ text, attachments, keys or passwords.</li>
     <li>No phone numbers, payment cards (we don’t take online payments yet), or advertising identifiers.</li>
-    <li>No third-party analytics, fonts or tracking pixels.</li>
+    <li>No third-party fonts, tracking pixels or advertising, and no third-party code on any page that handles notes.</li>
   </ul>
 
   <h2>Service providers</h2>
   <ul>
     <li><strong>Cloudflare</strong>: hosting, database and file storage. Cloudflare Turnstile checks that sign-ups and password resets come from people, on those pages only.</li>
     <li><strong>Resend</strong>: delivers our emails.</li>
+    <li><strong>Google</strong>: Google Analytics, on information pages only and only if you allow it.</li>
     <li>
       <strong>Your browser’s push service</strong> (for example Google, Mozilla, Apple or Microsoft) delivers push
       notifications if you turn them on. They’re encrypted so the push service can’t read them.

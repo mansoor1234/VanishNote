@@ -5,12 +5,12 @@ import type { ErrorResponse } from '../lib/schema';
  * Security headers applied to every response the Worker renders. Static pages get the
  * same set from public/_headers. Keep the two in sync (tests/unit/headers.test.ts checks).
  */
-function csp(extra: { script?: string; frame?: string; connect?: string } = {}): string {
+function csp(extra: { script?: string; frame?: string; connect?: string; img?: string } = {}): string {
   return [
     "default-src 'none'",
     `script-src 'self'${extra.script ? ` ${extra.script}` : ''}`,
     "style-src 'self'",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob:${extra.img ? ` ${extra.img}` : ''}`,
     "font-src 'self'",
     `connect-src 'self'${extra.connect ? ` ${extra.connect}` : ''}`,
     "manifest-src 'self'",
@@ -29,6 +29,16 @@ export const CONTENT_SECURITY_POLICY = csp();
 const TURNSTILE = 'https://challenges.cloudflare.com';
 export const TURNSTILE_CSP = csp({ script: TURNSTILE, frame: TURNSTILE, connect: TURNSTILE });
 export const TURNSTILE_PATHS = /^\/(signup|forgot|verify)$/;
+
+/**
+ * Google Analytics, on the information pages in ANALYTICS_PATHS only (static, so public/_headers
+ * sets it). Origins as documented by Google for GA4.
+ */
+export const ANALYTICS_CSP = csp({
+  script: 'https://*.googletagmanager.com',
+  img: 'https://*.google-analytics.com https://*.googletagmanager.com',
+  connect: 'https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com',
+});
 
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Content-Security-Policy': CONTENT_SECURITY_POLICY,

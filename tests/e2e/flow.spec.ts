@@ -200,3 +200,47 @@ test('marketing pages are indexable; note pages are not', async ({ page, request
   expect(sitemap).not.toMatch(/\/(n|d)\//);
   expect(errors).toEqual([]);
 });
+
+test('Google Analytics: opt-in, information pages only', async ({ page }) => {
+  const errors = trackConsoleErrors(page);
+  // Never contact Google from tests; record what the page tries to load instead.
+  const googleRequests: string[] = [];
+  await page.route(/google(tagmanager|-analytics)\.com|analytics\.google\.com/, (route) => {
+    googleRequests.push(route.request().url());
+    return route.fulfill({ status: 200, contentType: 'text/javascript', body: '' });
+  });
+
+  // Pages that handle notes or passwords: no banner, no Google origins in the CSP.
+  for (const path of ['/', '/login', '/signup', '/n/AAAAAAAAAAAAAAAAAAAAAA']) {
+    const res = await page.goto(path);
+    expect(res!.headers()['content-security-policy'], path).not.toContain('google');
+    await expect(page.locator('[data-consent-banner]'), path).toHaveCount(0);
+  }
+
+  const res = await page.goto('/pricing');
+  expect(res!.headers()['content-security-policy']).toContain('https://*.googletagmanager.com');
+  const banner = page.getByRole('region', { name: 'Help us improve these pages?' });
+  await expect(banner).toBeVisible();
+  expect(googleRequests).toEqual([]);
+
+  // Declining loads nothing and is remembered.
+  await banner.getByRole('button', { name: 'No thanks' }).click();
+  await expect(banner).toBeHidden();
+  await page.goto('/faq');
+  await expect(page.locator('[data-consent-banner]')).toBeHidden();
+  expect(googleRequests).toEqual([]);
+
+  // Changing the choice on the privacy page, then allowing, loads gtag.js.
+  await page.goto('/privacy');
+  await page.getByRole('button', { name: 'Change my analytics choice' }).click();
+  await banner.getByRole('button', { name: 'Allow analytics' }).click();
+  await expect(page.locator('script[data-ga]')).toHaveCount(1);
+  await expect.poll(() => googleRequests.some((u) => u.includes('/gtag/js?id=G-'))).toBe(true);
+
+  // Still never on the home page after opting in.
+  googleRequests.length = 0;
+  await page.goto('/');
+  await expect(page.locator('script[data-ga]')).toHaveCount(0);
+  expect(googleRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
