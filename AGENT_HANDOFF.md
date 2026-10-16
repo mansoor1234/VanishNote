@@ -178,7 +178,7 @@ scripts/           generate-og.mjs (social images and push icon), generate-vapid
 | | Free | Standard | Business |
 |---|---|---|---|
 | Price | $0 | $5 / user / month ($4 yearly) | $30 / month flat ($24 yearly). Marked "Most popular" |
-| Notes per month | 5 | unlimited | unlimited |
+| Notes per month | unlimited (like home-page quick notes) | unlimited | unlimited |
 | Requests per month | 2 | unlimited | unlimited |
 | Attachment size | 5 MB | 25 MB | 25 MB |
 | Retention | 7 days | 6 months (183 d) | 12 months |

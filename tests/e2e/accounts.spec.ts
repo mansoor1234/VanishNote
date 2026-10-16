@@ -60,7 +60,8 @@ test('sign up → verify → empty dashboard → log out → log in', async ({ p
   const errors = trackConsoleErrors(page);
   const { email, password } = await signUp(page);
   await expect(page.getByRole('heading', { name: 'Your notes will appear here' })).toBeVisible();
-  await expect(page.getByText('5 left')).toBeVisible();
+  // Free: notes are unlimited (no meter); information requests are capped at 2 a month.
+  await expect(page.getByText('2 left')).toBeVisible();
 
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login$/);

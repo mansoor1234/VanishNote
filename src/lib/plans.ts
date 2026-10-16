@@ -51,7 +51,8 @@ export const PLANS: Record<PlanId, Plan> = {
     priceUnit: 'flat',
     priceNote: 'Free forever, no card needed',
     limits: {
-      notesPerMonth: 5,
+      // Unlimited, like quick notes from the home page; information requests are the Free limit.
+      notesPerMonth: null,
       requestsPerMonth: 2,
       attachmentBytes: 5 * MB,
       retentionDays: 7,

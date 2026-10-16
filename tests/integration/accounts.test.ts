@@ -212,17 +212,10 @@ describe('sign-up, verification and login', () => {
 });
 
 describe('account notes', () => {
-  it('Free plan: 5 notes a month, enforced atomically under concurrency', async () => {
+  it('Free plan: notes are unlimited, like quick notes from the home page', async () => {
     const user = await newUser();
     const results = await Promise.all(Array.from({ length: 8 }, () => createNote(user.cookie)));
-    expect(results.filter((r) => r.res.status === 201)).toHaveLength(5);
-    const refused = results.find((r) => r.res.status === 403)!;
-    expect(((await refused.res.json()) as { error: string }).error).toBe('quota_reached');
-
-    clock = Date.UTC(2026, 6, 1); // next month (the 30-day session has also expired: log in again)
-    const login = await api('POST', '/api/auth/login', { json: { email: user.email, authKey: user.authKey } });
-    const cookie = login.headers.get('Set-Cookie')!.split(';')[0]!;
-    expect((await createNote(cookie)).res.status).toBe(201);
+    expect(results.map((r) => r.res.status)).toEqual(Array(8).fill(201));
   });
 
   it('attachment: encrypted in R2, downloadable once after reveal, then shredded', async () => {
@@ -383,11 +376,17 @@ describe('information requests', () => {
     expect(record!.status).toBe('opened');
   });
 
-  it('Free plan: 2 requests a month', async () => {
+  it('Free plan: 2 requests a month, enforced atomically under concurrency', async () => {
     const user = await newUser();
-    expect((await createRequest(user.cookie)).res.status).toBe(201);
-    expect((await createRequest(user.cookie)).res.status).toBe(201);
-    expect((await createRequest(user.cookie)).res.status).toBe(403);
+    const results = await Promise.all(Array.from({ length: 5 }, () => createRequest(user.cookie)));
+    expect(results.filter((r) => r.res.status === 201)).toHaveLength(2);
+    const refused = results.find((r) => r.res.status === 403)!;
+    expect(((await refused.res.json()) as { error: string }).error).toBe('quota_reached');
+
+    clock = Date.UTC(2026, 6, 1); // next month (the 30-day session has also expired: log in again)
+    const login = await api('POST', '/api/auth/login', { json: { email: user.email, authKey: user.authKey } });
+    const cookie = login.headers.get('Set-Cookie')!.split(';')[0]!;
+    expect((await createRequest(cookie)).res.status).toBe(201);
   });
 
   it('expired requests cannot be answered', async () => {
