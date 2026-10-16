@@ -43,13 +43,17 @@ import {
   handleTwoFactor,
 } from './settings';
 import {
+  handleAuditCsv,
   handleBranding,
+  handleGetPolicy,
   handleInvite,
   handleJoin,
+  handlePolicy,
   handleRemoveLogo,
   handleRemoveMember,
   handleRenameTeam,
   handleRevokeInvite,
+  handleShredMember,
 } from './team';
 
 type LimiterName = 'AUTH_LIMITER' | 'CREATE_LIMITER' | 'READ_LIMITER';
@@ -95,6 +99,12 @@ const routes: Route[] = [
   { method: 'POST', pattern: /^\/api\/account\/team\/name$/, handler: handleRenameTeam, auth: true },
   { method: 'POST', pattern: /^\/api\/account\/team\/branding$/, handler: handleBranding, auth: true },
   { method: 'DELETE', pattern: /^\/api\/account\/team\/branding\/logo$/, handler: handleRemoveLogo, auth: true },
+  // Team admin (owner, Standard and Business)
+  { method: 'POST', pattern: /^\/api\/account\/team\/policy$/, handler: handlePolicy, auth: true },
+  { method: 'POST', pattern: new RegExp(`^/api/account/team/members/${ID}/shred$`), handler: handleShredMember, auth: true },
+  { method: 'GET', pattern: /^\/api\/account\/team\/audit\.csv$/, handler: handleAuditCsv, auth: true },
+  // The rules notes must follow (API clients and the browser extension)
+  { method: 'GET', pattern: /^\/api\/account\/policy$/, handler: handleGetPolicy, auth: true, apiKey: true },
 
   // Settings
   { method: 'POST', pattern: /^\/api\/account\/profile$/, handler: handleProfile, auth: true },

@@ -119,7 +119,8 @@ or security settings:
 
 | Method | Path | |
 | ------ | ---- | - |
-| `GET` | `/api/account/records?kind=note\|request` | Notes and requests, with status |
+| `GET` | `/api/account/policy` | The team's rules for new notes: `requirePassword`, allowed `timedExpiry`, `maxLifetimeDays` |
+| `GET` | `/api/account/records?kind=note\|request&member=:userId` | Notes and requests, with status (`member` on shared plans) |
 | `GET` | `/api/account/records/:id` | One record and its activity history |
 | `DELETE` | `/api/account/records/:id` | Destroy a note / cancel a request, and delete its history |
 | `POST` | `/api/account/notes` | Create a note (`multipart/form-data`: `meta` JSON + optional encrypted `file`) |

@@ -23,6 +23,10 @@ export interface PlanLimits {
   branding: boolean;
   /** Keep a note's activity history after it's shredded (until retention ends). */
   keepActivityAfterShred: boolean;
+  /** Owner tools: team policies, audit log and CSV export, shred a member's notes. */
+  teamAdmin: boolean;
+  /** Owner can require members to sign in with Google or Microsoft. */
+  ssoEnforcement: boolean;
 }
 
 export interface Plan {
@@ -60,6 +64,8 @@ export const PLANS: Record<PlanId, Plan> = {
       sharedNotes: false,
       branding: false,
       keepActivityAfterShred: false,
+      teamAdmin: false,
+      ssoEnforcement: false,
     },
   },
   standard: {
@@ -79,6 +85,8 @@ export const PLANS: Record<PlanId, Plan> = {
       sharedNotes: true,
       branding: true,
       keepActivityAfterShred: true,
+      teamAdmin: true,
+      ssoEnforcement: false,
     },
   },
   business: {
@@ -99,6 +107,8 @@ export const PLANS: Record<PlanId, Plan> = {
       sharedNotes: true,
       branding: true,
       keepActivityAfterShred: true,
+      teamAdmin: true,
+      ssoEnforcement: true,
     },
   },
 };
@@ -149,4 +159,6 @@ export const PRICING_ROWS: { label: string; value: (plan: Plan) => string | bool
   { label: 'Activity history kept after shredding', value: (p) => p.limits.keepActivityAfterShred },
   { label: 'Shared team notes and activity', value: (p) => p.limits.sharedNotes },
   { label: 'Company branded notes and emails', value: (p) => p.limits.branding },
+  { label: 'Team policies: required passwords, maximum lifetime', value: (p) => p.limits.teamAdmin },
+  { label: 'Audit log with CSV export', value: (p) => p.limits.teamAdmin },
 ];

@@ -121,15 +121,17 @@ export async function listRecords(
   shared: boolean,
   kind: 'note' | 'request' | null,
   limit = 100,
+  /** Shared plans only: show one team member's records. */
+  memberId: string | null = null,
 ): Promise<RecordRow[]> {
   const rows = await db
     .prepare(
       `SELECT r.id, r.kind, r.title, r.status, r.has_file, r.created_at, r.expires_at, r.updated_at, r.user_id, u.name AS author
          FROM records r LEFT JOIN users u ON u.id = r.user_id
-        WHERE r.team_id = ?1 AND (?5 = 1 OR r.user_id = ?2) AND (?3 IS NULL OR r.kind = ?3)
+        WHERE r.team_id = ?1 AND (?5 = 1 OR r.user_id = ?2) AND (?3 IS NULL OR r.kind = ?3) AND (?6 IS NULL OR r.user_id = ?6)
         ORDER BY r.created_at DESC LIMIT ?4`,
     )
-    .bind(teamId, userId, kind, limit, shared ? 1 : 0)
+    .bind(teamId, userId, kind, limit, shared ? 1 : 0, shared ? memberId : null)
     .all<RecordRow>();
   return rows.results;
 }

@@ -16,6 +16,8 @@ import {
   type TimedExpiry,
 } from '../lib/limits';
 import { PLANS } from '../lib/plans';
+import { formatLifetime, maxLifetimeDays } from '../lib/policy';
+import { audit, auditStatement } from './audit';
 import { newId, parseBody, type SessionUser } from './auth';
 import { appLink, type Ctx } from './context';
 import { deleteTeamNote, insertNoteStatement, ORPHAN_GRACE_MS } from './db';
@@ -89,17 +91,22 @@ export async function handleCreateAccountNote(ctx: Ctx): Promise<Response> {
   if (input.passwordHint && !input.salt) {
     return error(400, 'invalid_request', 'A password hint only makes sense with a password.');
   }
+  if (user.policy.requirePassword && !input.salt) {
+    return error(403, 'policy', 'Your team requires a password on every note.');
+  }
 
-  const retentionMs = plan.limits.retentionDays * DAY;
+  const lifetimeMs = maxLifetimeDays(user.plan, user.policy) * DAY;
   let expiresAt: number;
   if (input.shred.mode === 'time') {
     const ms = TIMED_EXPIRY_DAYS[input.shred.expiresIn] * DAY;
-    if (ms > retentionMs) {
-      return error(403, 'plan_limit', `The ${plan.name} plan keeps notes for up to ${plan.limits.retentionDays} days.`);
+    if (ms > lifetimeMs) {
+      return user.policy.maxExpiry && ms <= plan.limits.retentionDays * DAY
+        ? error(403, 'policy', `Your team keeps notes for up to ${formatLifetime(maxLifetimeDays(user.plan, user.policy))}.`)
+        : error(403, 'plan_limit', `The ${plan.name} plan keeps notes for up to ${plan.limits.retentionDays} days.`);
     }
     expiresAt = ctx.now + ms;
   } else {
-    expiresAt = ctx.now + retentionMs;
+    expiresAt = ctx.now + lifetimeMs;
   }
 
   if (!(await useQuota(ctx.env.DB, user.teamId, 'notes', plan.limits.notesPerMonth, ctx.now))) {
@@ -138,6 +145,7 @@ export async function handleCreateAccountNote(ctx: Ctx): Promise<Response> {
          VALUES (?1, 'note', ?2, ?3, ?4, 'active', ?5, ?6, ?7, ?8, ?6)`,
       ).bind(id, user.teamId, user.id, input.title, file ? 1 : 0, ctx.now, expiresAt, Math.max(expiresAt, retainUntil(user.plan, ctx.now))),
       eventStatement(ctx.env.DB, id, 'created', ctx.now, ctx.country),
+      auditStatement(ctx, { teamId: user.teamId, id: user.id, name: user.name }, 'note.created', input.title),
     ]);
   } catch (err) {
     await refundQuota(ctx.env.DB, user.teamId, 'notes', ctx.now);
@@ -196,12 +204,15 @@ export async function teamBrand(ctx: Ctx, user: SessionUser) {
 export async function handleListRecords(ctx: Ctx): Promise<Response> {
   const user = ctx.user!;
   const kind = ctx.url.searchParams.get('kind');
+  const member = ctx.url.searchParams.get('member');
   const rows = await listRecords(
     ctx.env.DB,
     user.teamId,
     user.id,
     PLANS[user.plan].limits.sharedNotes,
     kind === 'note' || kind === 'request' ? kind : null,
+    100,
+    member && /^[A-Za-z0-9_-]{1,64}$/.test(member) ? member : null,
   );
   return json({ records: rows });
 }
@@ -221,6 +232,12 @@ export async function handleDeleteRecord(ctx: Ctx, id: string): Promise<Response
   if (record.user_id !== user.id && user.role !== 'owner') {
     return error(403, 'forbidden', 'Only the person who created this, or the team owner, can delete it.');
   }
+  const live = record.status === 'active' || record.status === 'pending' || record.status === 'completed';
+  await audit(
+    ctx,
+    !live ? 'record.deleted' : record.kind === 'note' ? 'note.destroyed' : 'request.cancelled',
+    record.title,
+  );
   if (record.kind === 'note') {
     await deleteTeamNote(ctx.env.DB, id, user.teamId, ctx.now);
   } else {

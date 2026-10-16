@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { useFreshClientIp } from './client-ip';
@@ -180,7 +181,7 @@ test('information request: create, answer anonymously, open with the request pas
 test('dashboard pages load without CSP errors, and are never indexed', async ({ page }) => {
   const errors = trackConsoleErrors(page);
   await signUp(page);
-  for (const path of ['/app', '/app/team', '/app/settings', '/app/subscription', '/app/contact']) {
+  for (const path of ['/app', '/app/team', '/app/admin', '/app/settings', '/app/subscription', '/app/contact']) {
     const res = await page.goto(path);
     expect(res!.headers()['x-robots-tag']).toContain('noindex');
     expect(res!.headers()['cache-control']).toContain('no-store');
@@ -190,6 +191,53 @@ test('dashboard pages load without CSP errors, and are never indexed', async ({ 
   await expect(page.getByText('Your current plan')).toBeVisible();
   await page.goto('/app/team');
   await expect(page.getByText('The Free plan is for one person.')).toBeVisible();
+  await page.goto('/app/admin');
+  await expect(page.getByRole('heading', { name: 'Team admin is included in Standard and Business' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('team admin: a policy set by the owner shapes the note form, and lands in the audit log', async ({ page }) => {
+  const errors = trackConsoleErrors(page);
+  const { email } = await signUp(page, 'Olive Owner');
+  // Plans are set in the database (billing isn't wired up); the e2e server uses the local D1.
+  // Run wrangler's script with this Node directly: no shell, so the SQL needs no quoting.
+  execFileSync(
+    process.execPath,
+    [
+      'node_modules/wrangler/bin/wrangler.js',
+      'd1',
+      'execute',
+      'vanishnote-db',
+      '--local',
+      '--command',
+      `UPDATE teams SET plan = 'standard' WHERE id = (SELECT team_id FROM users WHERE email = '${email}')`,
+    ],
+    { stdio: 'ignore' },
+  );
+
+  await page.goto('/app/admin');
+  await page.getByLabel('Require a password on every note').check();
+  await page.getByLabel('Longest a note or request can live').selectOption('1d');
+  await page.getByRole('button', { name: 'Save policies' }).click();
+  await expect(page.getByText('Policies saved.')).toBeVisible();
+
+  await page.goto('/app');
+  await page.getByRole('button', { name: 'Create note' }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'New note' });
+  await expect(dialog.getByText('(required by your team)')).toBeVisible();
+  await expect(dialog.getByText('Unread notes are deleted after 1 day (your team’s policy).')).toBeVisible();
+  await dialog.getByLabel('Title').fill('No password');
+  await dialog.getByLabel('Note contents').fill('secret');
+  await dialog.getByRole('button', { name: 'Create note' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Your team requires a password on every note.');
+  await dialog.getByRole('button', { name: 'Close' }).first().click();
+
+  await page.goto('/app/admin');
+  const log = page.getByRole('table');
+  await expect(log.getByText('Changed team policies')).toBeVisible();
+  const csv = await page.request.get('/api/account/team/audit.csv');
+  expect(csv.headers()['content-type']).toContain('text/csv');
+  expect(await csv.text()).toContain('passwords required, notes last at most 1 day');
   expect(errors).toEqual([]);
 });
 

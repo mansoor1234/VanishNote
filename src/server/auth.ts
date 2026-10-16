@@ -9,7 +9,9 @@
 import { z } from 'zod';
 import { fromBase64Url, randomBytes, toBase64Url } from '../lib/encoding';
 import { isPlanId, type PlanId } from '../lib/plans';
+import { effectivePolicy, type TeamPolicy } from '../lib/policy';
 import { LEGAL_UPDATED } from '../lib/site';
+import { auditSignIn } from './audit';
 import { appLink, type Ctx } from './context';
 import { error, json, readJson, sha256Hex, BodyError } from './http';
 import { createMailer, sendInBackground } from './mail';
@@ -31,6 +33,8 @@ export interface SessionUser {
   brandId: string | null;
   brandName: string | null;
   hasLogo: boolean;
+  /** The team's policies, limited to what its plan includes. */
+  policy: TeamPolicy;
 }
 
 const authKeySchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
@@ -129,7 +133,7 @@ function jsonWithCookies(body: unknown, cookies: string[], status = 200): Respon
 }
 
 const USER_COLUMNS = `u.id, u.email, u.name, u.role, t.id AS team_id, t.name AS team_name, t.plan, t.seats,
-            t.brand_id, t.brand_name, t.brand_logo_key`;
+            t.brand_id, t.brand_name, t.brand_logo_key, t.policy_require_password, t.policy_max_expiry, t.policy_require_sso`;
 
 export async function getSessionUser(ctx: Ctx): Promise<SessionUser | undefined> {
   const token = readSessionToken(ctx.request, ctx.url);
@@ -162,6 +166,7 @@ export async function getApiKeyUser(ctx: Ctx): Promise<SessionUser | undefined> 
 }
 
 function toSessionUser(row: Record<string, string | number | null>): SessionUser {
+  const plan = isPlanId(row['plan']) ? row['plan'] : 'free';
   return {
     id: String(row['id']),
     email: String(row['email']),
@@ -169,11 +174,16 @@ function toSessionUser(row: Record<string, string | number | null>): SessionUser
     role: row['role'] === 'member' ? 'member' : 'owner',
     teamId: String(row['team_id']),
     teamName: String(row['team_name']),
-    plan: isPlanId(row['plan']) ? row['plan'] : 'free',
+    plan,
     seats: Number(row['seats']),
     brandId: (row['brand_id'] as string | null) ?? null,
     brandName: (row['brand_name'] as string | null) ?? null,
     hasLogo: row['brand_logo_key'] != null,
+    policy: effectivePolicy(plan, {
+      requirePassword: row['policy_require_password'] === 1,
+      maxExpiry: (row['policy_max_expiry'] as string | null) ?? null,
+      requireSso: row['policy_require_sso'] === 1,
+    }),
   };
 }
 
@@ -363,6 +373,7 @@ export async function handleLogin(ctx: Ctx): Promise<Response> {
       message: `We emailed a 6-digit code to ${input.email}. It expires in 10 minutes.`,
     });
   }
+  await auditSignIn(ctx, user.id, 'Password');
   return jsonWithCookies({ ok: true }, [await createSession(ctx, user.id)]);
 }
 
@@ -386,6 +397,7 @@ export async function handleLoginCode(ctx: Ctx): Promise<Response> {
     return error(401, 'invalid_code', 'That code isn’t right. Check the latest email and try again.');
   }
   await ctx.env.DB.prepare('DELETE FROM login_challenges WHERE id = ?1').bind(input.challengeId).run();
+  await auditSignIn(ctx, challenge.user_id, 'Password and email code (new device)');
   return jsonWithCookies({ ok: true }, [await createSession(ctx, challenge.user_id), await trustDevice(ctx, challenge.user_id)]);
 }
 
@@ -427,6 +439,7 @@ export async function handleReset(ctx: Ctx): Promise<Response> {
     ctx.env.DB.prepare('DELETE FROM login_challenges WHERE user_id = ?1').bind(token.user_id),
   ]);
   // The reset link proved control of the inbox, the same factor a 2FA code proves.
+  await auditSignIn(ctx, token.user_id, 'Password reset link');
   return json({ ok: true }, 200, { 'Set-Cookie': await createSession(ctx, token.user_id) });
 }
 

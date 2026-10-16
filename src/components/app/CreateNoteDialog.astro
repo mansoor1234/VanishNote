@@ -1,17 +1,29 @@
 ---
 import { MAX_NOTE_BYTES, MAX_READS, TIMED_EXPIRY_DAYS, TIMED_EXPIRY_LABELS, type TimedExpiry } from '../../lib/limits';
 import { formatMB, PLANS } from '../../lib/plans';
+import { formatLifetime, maxLifetimeDays } from '../../lib/policy';
 
 const user = Astro.locals.user!;
 const plan = PLANS[user.plan];
+const policy = user.policy;
+const lifetime = maxLifetimeDays(user.plan, policy);
 const timed = (Object.keys(TIMED_EXPIRY_DAYS) as TimedExpiry[]).map((key) => ({
   key,
   label: TIMED_EXPIRY_LABELS[key],
-  allowed: TIMED_EXPIRY_DAYS[key] <= plan.limits.retentionDays,
+  allowed: TIMED_EXPIRY_DAYS[key] <= lifetime,
+  // Over the team policy but within the plan: say why it's unavailable.
+  reason: TIMED_EXPIRY_DAYS[key] <= plan.limits.retentionDays ? ' (team policy)' : ' (upgrade)',
 }));
+const defaultTimed = timed.find((t) => t.key === '1d' && t.allowed) ? '1d' : timed.find((t) => t.allowed)?.key;
 ---
 
-<dialog id="create-note" class="dialog" aria-labelledby="create-note-title" data-attachment-limit={plan.limits.attachmentBytes}>
+<dialog
+  id="create-note"
+  class="dialog"
+  aria-labelledby="create-note-title"
+  data-attachment-limit={plan.limits.attachmentBytes}
+  data-require-password={policy.requirePassword ? '1' : undefined}
+>
   <div class="dialog-header">
     <div class="flex flex-wrap items-center gap-3">
       <h2 id="create-note-title" class="text-lg font-bold">New note</h2>
@@ -32,9 +44,11 @@ const timed = (Object.keys(TIMED_EXPIRY_DAYS) as TimedExpiry[]).map((key) => ({
 
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
-              <label for="cn-password" class="field-label">Password <span class="font-normal text-muted">(optional)</span></label>
+              <label for="cn-password" class="field-label">
+                Password <span class="font-normal text-muted">{policy.requirePassword ? '(required by your team)' : '(optional)'}</span>
+              </label>
               <div class="flex gap-2">
-                <input id="cn-password" name="password" type="password" class="input" autocomplete="new-password" />
+                <input id="cn-password" name="password" type="password" class="input" autocomplete="new-password" required={policy.requirePassword} />
                 <button type="button" class="btn-secondary shrink-0 px-3" data-generate-password="cn-password" aria-label="Generate a strong password" title="Generate a strong password">⚄</button>
               </div>
             </div>
@@ -66,15 +80,17 @@ const timed = (Object.keys(TIMED_EXPIRY_DAYS) as TimedExpiry[]).map((key) => ({
               <select id="cn-reads" name="maxReads" class="input">
                 {Array.from({ length: MAX_READS }, (_, i) => i + 1).map((n) => <option value={n}>{n === 1 ? '1 view' : `${n} views`}</option>)}
               </select>
-              <p class="field-hint">Unread notes are deleted after {plan.limits.retentionDays} days.</p>
+              <p class="field-hint">
+                Unread notes are deleted after {formatLifetime(lifetime)}{policy.maxExpiry ? ' (your team’s policy)' : ''}.
+              </p>
             </div>
             <div class="mt-3" data-mode-panel="time" hidden>
               <label for="cn-expiry" class="field-label">Readable until</label>
               <select id="cn-expiry" name="expiresIn" class="input" aria-describedby="cn-expiry-hint">
                 {
                   timed.map((t) => (
-                    <option value={t.key} disabled={!t.allowed} selected={t.key === '1d'}>
-                      {t.label} from now{t.allowed ? '' : ' (upgrade)'}
+                    <option value={t.key} disabled={!t.allowed} selected={t.key === defaultTimed}>
+                      {t.label} from now{t.allowed ? '' : t.reason}
                     </option>
                   ))
                 }

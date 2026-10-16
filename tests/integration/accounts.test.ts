@@ -614,3 +614,143 @@ describe('security settings', () => {
     expect((await bearer('GET', '/api/account/records', undefined, second.key)).status).toBe(401);
   });
 });
+
+describe('team admin: policies, audit log, shredding a member', () => {
+  /** An owner on `plan` with one member who joined by invitation. */
+  async function teamWithMember(plan: 'standard' | 'business') {
+    const owner = await newUser('Olive Owner');
+    const member = await newUser('Max Member');
+    const teamId = await teamOf(owner.email);
+    await env.DB.prepare('UPDATE teams SET plan = ?2, seats = 5 WHERE id = ?1').bind(teamId, plan).run();
+    expect((await api('POST', '/api/account/team/invite', { json: { email: member.email }, cookie: owner.cookie })).status).toBe(204);
+    const token = linkIn((await outbox(member.email)).at(-1)!.text, '/join#').split('#')[1];
+    expect((await api('POST', '/api/account/team/join', { json: { token }, cookie: member.cookie })).status).toBe(204);
+    return { owner, member, teamId };
+  }
+
+  const setPolicy = (cookie: string, policy: Record<string, unknown>) =>
+    api('POST', '/api/account/team/policy', { json: { requirePassword: false, maxExpiry: null, requireSso: false, ...policy }, cookie });
+
+  async function newRequest(cookie: string, title = 'Passport number') {
+    const { fingerprint: _fp, ...wrapped } = await createRequestKeys('request-pw');
+    return api('POST', '/api/account/requests', { json: { title, ...wrapped }, cookie });
+  }
+
+  it('is not available on Free, or to members', async () => {
+    const solo = await newUser();
+    expect((await setPolicy(solo.cookie, { requirePassword: true })).status).toBe(403);
+    expect((await api('GET', '/api/account/team/audit.csv', { cookie: solo.cookie })).status).toBe(403);
+
+    const { member } = await teamWithMember('standard');
+    expect((await setPolicy(member.cookie, { requirePassword: true })).status).toBe(403);
+    expect((await api('GET', '/api/account/team/audit.csv', { cookie: member.cookie })).status).toBe(403);
+  });
+
+  it('enforces required passwords and a maximum lifetime on every member', async () => {
+    const { owner, member } = await teamWithMember('standard');
+    expect((await setPolicy(owner.cookie, { requirePassword: true, maxExpiry: '7d' })).status).toBe(200);
+
+    const noPassword = await createNote(member.cookie);
+    expect(noPassword.res.status).toBe(403);
+    expect(((await noPassword.res.json()) as { error: string }).error).toBe('policy');
+
+    const tooLong = await createNote(member.cookie, { password: 'pw', shred: { mode: 'time', expiresIn: '30d' } });
+    expect(tooLong.res.status).toBe(403);
+    expect(((await tooLong.res.json()) as { error: string }).error).toBe('policy');
+
+    const ok = await createNote(member.cookie, { password: 'pw', shred: { mode: 'time', expiresIn: '7d' } });
+    expect(ok.res.status).toBe(201);
+    // "After it's read" notes are also shredded at the policy's limit, not the plan's 183 days.
+    const read = await createNote(member.cookie, { password: 'pw' });
+    const { expiresAt } = (await env.DB.prepare('SELECT expires_at AS expiresAt FROM notes WHERE id = ?1').bind(read.data!.id).first<{ expiresAt: number }>())!;
+    expect(expiresAt).toBe(clock + 7 * 24 * 60 * 60 * 1000);
+
+    // Requests live no longer than the policy either; their history keeps the plan's retention.
+    const request = (await (await newRequest(member.cookie)).json()) as { id: string; expiresAt: number };
+    expect(request.expiresAt).toBe(clock + 7 * 24 * 60 * 60 * 1000);
+    const { retain } = (await env.DB.prepare('SELECT retain_until AS retain FROM records WHERE id = ?1').bind(request.id).first<{ retain: number }>())!;
+    expect(retain).toBe(clock + 183 * 24 * 60 * 60 * 1000);
+
+    // API clients and the browser extension read the same rules.
+    const rules = (await (await api('GET', '/api/account/policy', { cookie: member.cookie })).json()) as { requirePassword: boolean; timedExpiry: string[] };
+    expect(rules).toMatchObject({ requirePassword: true, timedExpiry: ['1h', '1d', '7d'] });
+
+    // Requiring Google/Microsoft sign-in is Business only.
+    expect((await setPolicy(owner.cookie, { requireSso: true })).status).toBe(403);
+  });
+
+  it('policies stop applying if the team drops to Free', async () => {
+    const { owner, member, teamId } = await teamWithMember('business');
+    expect((await setPolicy(owner.cookie, { requirePassword: true, requireSso: true })).status).toBe(200);
+    await env.DB.prepare("UPDATE teams SET plan = 'free' WHERE id = ?1").bind(teamId).run();
+    expect((await createNote(member.cookie)).res.status).toBe(201);
+  });
+
+  it('logs who did what, never note contents, and exports CSV safely', async () => {
+    const { owner, member } = await teamWithMember('standard');
+    await setPolicy(owner.cookie, { maxExpiry: '1d' });
+    await createNote(member.cookie, { title: '=HYPERLINK("http://evil.example")' });
+    const { data } = await createNote(owner.cookie, { title: 'Wi-Fi password' });
+    await api('DELETE', `/api/account/records/${data!.id}`, { cookie: owner.cookie });
+
+    const res = await api('GET', '/api/account/team/audit.csv', { cookie: owner.cookie });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('text/csv');
+    expect(res.headers.get('Content-Disposition')).toMatch(/attachment; filename="vanishnote-audit-\d{4}-\d{2}-\d{2}\.csv"/);
+    const csv = await res.text();
+    const lines = csv.trim().split('\r\n');
+    expect(lines[0]).toBe('"Time (UTC)","Person","Action","Target","Country"');
+    for (const expected of [
+      '"Olive Owner","Invited"',
+      '"Max Member","Joined the team"',
+      '"Olive Owner","Changed team policies","passwords optional, notes last at most 1 day"',
+      '"Olive Owner","Created a note","Wi-Fi password"',
+      '"Olive Owner","Destroyed a note","Wi-Fi password"',
+    ]) {
+      expect(csv).toContain(expected);
+    }
+    // A title that looks like a spreadsheet formula is neutralised.
+    expect(csv).toContain(`"'=HYPERLINK(""http://evil.example"")"`);
+    expect(csv).not.toContain('vault code');
+  });
+
+  it('shreds every live note and open request of one member, keeping their history', async () => {
+    const { owner, member } = await teamWithMember('standard');
+    const a = await createNote(member.cookie, { title: 'A' });
+    const b = await createNote(member.cookie, { title: 'B', file: randomFile(1000) });
+    const mine = await createNote(owner.cookie, { title: 'Owner note' });
+    expect((await newRequest(member.cookie)).status).toBe(201);
+
+    const memberId = (await env.DB.prepare('SELECT id FROM users WHERE email = ?1').bind(member.email).first<{ id: string }>())!.id;
+    expect((await api('POST', `/api/account/team/members/${memberId}/shred`, { json: {}, cookie: member.cookie })).status).toBe(403);
+    const res = await api('POST', `/api/account/team/members/${memberId}/shred`, { json: {}, cookie: owner.cookie });
+    expect(await res.json()).toEqual({ notes: 2, requests: 1 });
+
+    expect((await readNote(a.data!.id)).status).toBe(404);
+    expect((await readNote(b.data!.id)).status).toBe(404);
+    expect((await readNote(mine.data!.id)).status).toBe(200); // other people's notes are untouched
+    const statuses = await env.DB.prepare("SELECT status FROM records WHERE user_id = ?1 ORDER BY title").bind(memberId).all<{ status: string }>();
+    expect(statuses.results.map((r) => r.status)).toEqual(['destroyed', 'destroyed', 'destroyed']);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM orphan_files').first<{ n: number }>())!.n).toBeGreaterThan(0);
+  });
+
+  it('dashboard can show one member’s notes', async () => {
+    const { owner, member } = await teamWithMember('standard');
+    await createNote(member.cookie, { title: 'From Max' });
+    await createNote(owner.cookie, { title: 'From Olive' });
+    const memberId = (await env.DB.prepare('SELECT id FROM users WHERE email = ?1').bind(member.email).first<{ id: string }>())!.id;
+    const list = (await (await api('GET', `/api/account/records?member=${memberId}`, { cookie: owner.cookie })).json()) as { records: { title: string }[] };
+    expect(list.records.map((r) => r.title)).toEqual(['From Max']);
+  });
+
+  it('keeps audit entries for the plan’s retention only', async () => {
+    const { owner, teamId } = await teamWithMember('standard');
+    await setPolicy(owner.cookie, { requirePassword: true });
+    const count = async () => (await env.DB.prepare('SELECT COUNT(*) AS n FROM audit_log WHERE team_id = ?1').bind(teamId).first<{ n: number }>())!.n;
+    expect(await count()).toBeGreaterThan(0);
+    await runCleanup(env, clock + 182 * 24 * 60 * 60 * 1000);
+    expect(await count()).toBeGreaterThan(0);
+    await runCleanup(env, clock + 184 * 24 * 60 * 60 * 1000);
+    expect(await count()).toBe(0);
+  });
+});

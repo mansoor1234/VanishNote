@@ -31,13 +31,17 @@ const regionNames = (() => {
   }
 })();
 
-function localTime(ms: number): string {
+export function localTime(ms: number): string {
   return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 export function initDashboard(): void {
   for (const el of document.querySelectorAll<HTMLTimeElement>('time[data-local-time]')) {
     el.textContent = localTime(Date.parse(el.dateTime));
+  }
+  // HTMLSelectElement clashes with the Workers types; closest('form') avoids it.
+  for (const select of document.querySelectorAll<HTMLElement>('select[data-auto-submit]')) {
+    select.addEventListener('change', () => select.closest('form')?.submit());
   }
   const status = document.querySelector<HTMLElement>('[data-list-status]');
   const say = (message: string) => {

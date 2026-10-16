@@ -56,6 +56,14 @@ password or tampered byte gives the same `DecryptionError`.
   closed except on localhost.
 - Monthly quotas are enforced with a single conditional `INSERT … ON CONFLICT DO UPDATE … WHERE`,
   so concurrent requests can't overshoot them (tested).
+- **Team policies** (owner, Standard and Business: required password, maximum lifetime) are
+  enforced by the server on every note and request, whatever the client (dashboard, API key,
+  browser extension). The server can't see whether a password is strong, only that the note
+  was encrypted with one (a salt is present).
+- **Audit log** (`audit_log`, owner only, CSV export): sign-ins, notes and requests created or
+  destroyed, team and security changes. It stores names, note titles, times and the country,
+  never contents, keys or passwords, and is deleted after the plan's retention period. CSV
+  fields are quoted and formula prefixes (`= + - @`) neutralised against spreadsheet injection.
 
 ## Information requests
 

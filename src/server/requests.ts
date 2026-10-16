@@ -17,6 +17,8 @@ import {
   SALT_BYTES,
 } from '../lib/limits';
 import { isPlanId, PLANS, type PlanId } from '../lib/plans';
+import { maxLifetimeDays } from '../lib/policy';
+import { auditStatement } from './audit';
 import { newId, parseBody, type SessionUser } from './auth';
 import { appLink, type Ctx } from './context';
 import { ORPHAN_GRACE_MS } from './db';
@@ -28,6 +30,7 @@ import { requestCompletedEmail, requestForRecipientEmail } from './templates';
 import { refundQuota, useQuota } from './usage';
 import { teamBrand } from './account-notes';
 
+const DAY = 24 * 60 * 60 * 1000;
 const b64url = (length: number) => z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${length}}$`));
 const ivSchema = b64url(base64UrlLength(IV_BYTES));
 const publicKeySchema = b64url(base64UrlLength(65)); // uncompressed P-256 point
@@ -76,7 +79,8 @@ export async function handleCreateRequest(ctx: Ctx): Promise<Response> {
   }
 
   const id = newId();
-  const expiresAt = retainUntil(user.plan, ctx.now);
+  // A request lives for the plan's retention, or less if the team's policy says so.
+  const expiresAt = Math.min(retainUntil(user.plan, ctx.now), ctx.now + maxLifetimeDays(user.plan, user.policy) * DAY);
   const statements = [
     ctx.env.DB.prepare(
       `INSERT INTO requests (id, team_id, public_key, wrapped_key, wrapped_key_iv, wrapped_key_salt, message, password_hint, expires_at, created_at)
@@ -95,9 +99,10 @@ export async function handleCreateRequest(ctx: Ctx): Promise<Response> {
     ),
     ctx.env.DB.prepare(
       `INSERT INTO records (id, kind, team_id, user_id, title, status, has_file, created_at, expires_at, retain_until, updated_at)
-       VALUES (?1, 'request', ?2, ?3, ?4, 'pending', 0, ?5, ?6, ?6, ?5)`,
-    ).bind(id, user.teamId, user.id, input.title, ctx.now, expiresAt),
+       VALUES (?1, 'request', ?2, ?3, ?4, 'pending', 0, ?5, ?6, ?7, ?5)`,
+    ).bind(id, user.teamId, user.id, input.title, ctx.now, expiresAt, retainUntil(user.plan, ctx.now)),
     eventStatement(ctx.env.DB, id, 'created', ctx.now, ctx.country),
+    auditStatement(ctx, { teamId: user.teamId, id: user.id, name: user.name }, 'request.created', input.title),
   ];
   if (input.recipientEmail) statements.push(eventStatement(ctx.env.DB, id, 'emailed', ctx.now, null));
   try {

@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { CONTACT_EMAIL, LEGAL_UPDATED } from '../lib/site';
 import { PLANS } from '../lib/plans';
+import { audit } from './audit';
 import { authKeySchema, checkAuthKey, hashAuthKey, nameSchema, parseBody, sessionCookie, trustDevice } from './auth';
 import { isLocalRequest, type Ctx } from './context';
 import { randomBytes, toBase64Url } from '../lib/encoding';
@@ -108,6 +109,7 @@ export async function handleTwoFactor(ctx: Ctx): Promise<Response> {
   if (!(await checkAuthKey(ctx, user.id, input.authKey))) {
     return error(403, 'invalid_credentials', 'That password is incorrect.');
   }
+  await audit(ctx, input.enabled ? 'security.2fa_on' : 'security.2fa_off');
   if (input.enabled) {
     await ctx.env.DB.prepare('UPDATE users SET two_factor = 1 WHERE id = ?1').bind(user.id).run();
     // This browser already proved itself with the password and an existing session.
@@ -145,15 +147,17 @@ export async function handleCreateApiKey(ctx: Ctx): Promise<Response> {
   )
     .bind(user.id, await sha256Hex(key), prefix, ctx.now)
     .run();
+  await audit(ctx, 'api_key.created', prefix);
   return json({ key, prefix, createdAt: ctx.now }, 201);
 }
 
 export async function handleRevokeApiKey(ctx: Ctx): Promise<Response> {
-  await ctx.env.DB.prepare(
-    'UPDATE users SET api_key_hash = NULL, api_key_prefix = NULL, api_key_created_at = NULL, api_key_last_used_at = NULL WHERE id = ?1',
+  const revoked = await ctx.env.DB.prepare(
+    'UPDATE users SET api_key_hash = NULL, api_key_prefix = NULL, api_key_created_at = NULL, api_key_last_used_at = NULL WHERE id = ?1 AND api_key_hash IS NOT NULL',
   )
     .bind(ctx.user!.id)
     .run();
+  if (revoked.meta.changes > 0) await audit(ctx, 'api_key.revoked');
   return noContent();
 }
 

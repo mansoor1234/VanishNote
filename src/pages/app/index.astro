@@ -4,6 +4,7 @@ import App from '../../layouts/App.astro';
 import { PLANS } from '../../lib/plans';
 import { requestCtx } from '../../server/deps';
 import { listRecords } from '../../server/records';
+import { teamMembers } from '../../server/team';
 
 export const prerender = false;
 
@@ -12,7 +13,11 @@ const ctx = requestCtx(Astro.locals, Astro.request);
 const kindParam = Astro.url.searchParams.get('kind');
 const kind = kindParam === 'note' || kindParam === 'request' ? kindParam : null;
 const shared = PLANS[user.plan].limits.sharedNotes;
-const records = await listRecords(ctx.env.DB, user.teamId, user.id, shared, kind);
+const members = shared ? await teamMembers(ctx.env.DB, user.teamId) : [];
+const memberParam = Astro.url.searchParams.get('member');
+const member = members.find((m) => m.id === memberParam) ?? null;
+const records = await listRecords(ctx.env.DB, user.teamId, user.id, shared, kind, 100, member?.id ?? null);
+const withMember = (href: string) => (member ? `${href}${href.includes('?') ? '&' : '?'}member=${member.id}` : href);
 
 const STATUS: Record<string, { label: string; tone: string }> = {
   active: { label: 'Waiting to be read', tone: 'bg-accent-soft text-accent' },
@@ -24,9 +29,9 @@ const STATUS: Record<string, { label: string; tone: string }> = {
   opened: { label: 'Opened & shredded', tone: 'bg-success-soft text-success' },
 };
 const tabs = [
-  { href: '/app', label: 'All', active: kind === null },
-  { href: '/app?kind=note', label: 'Notes', active: kind === 'note' },
-  { href: '/app?kind=request', label: 'Requests', active: kind === 'request' },
+  { href: withMember('/app'), label: 'All', active: kind === null },
+  { href: withMember('/app?kind=note'), label: 'Notes', active: kind === 'note' },
+  { href: withMember('/app?kind=request'), label: 'Requests', active: kind === 'request' },
 ];
 ---
 
@@ -36,9 +41,27 @@ const tabs = [
       <div>
         <h1 class="text-2xl font-bold tracking-tight" tabindex="-1">Notes & requests</h1>
         <p class="text-sm text-muted">
-          {shared ? `Everything your team at ${user.teamName} has sent.` : 'Everything you’ve sent. Contents are never stored here, only what happened to them.'}
+          {member
+            ? `Everything ${member.id === user.id ? 'you have' : `${member.name} has`} sent.`
+            : shared
+              ? `Everything your team at ${user.teamName} has sent.`
+              : 'Everything you’ve sent. Contents are never stored here, only what happened to them.'}
         </p>
       </div>
+      <div class="flex flex-wrap items-end gap-3">
+      {
+        members.length > 1 && (
+          <form method="get" class="flex items-end gap-2">
+            {kind && <input type="hidden" name="kind" value={kind} />}
+            <label for="d-member" class="sr-only">Show notes from</label>
+            <select id="d-member" name="member" class="input min-h-10 py-1.5" data-auto-submit>
+              <option value="">Everyone</option>
+              {members.map((m) => <option value={m.id} selected={member?.id === m.id}>{m.id === user.id ? `${m.name} (you)` : m.name}</option>)}
+            </select>
+            <noscript><button type="submit" class="btn-secondary">Show</button></noscript>
+          </form>
+        )
+      }
       <nav aria-label="Filter">
         <ul class="flex gap-1 rounded-xl border border-line bg-surface p-1 text-sm font-semibold">
           {
@@ -56,6 +79,7 @@ const tabs = [
           }
         </ul>
       </nav>
+      </div>
     </div>
 
     {

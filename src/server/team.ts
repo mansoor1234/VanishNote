@@ -1,6 +1,9 @@
 /** Teams: members, invitations and company branding. */
 import { z } from 'zod';
+import { MAX_READS, TIMED_EXPIRY_DAYS, TIMED_EXPIRY_LABELS, type TimedExpiry } from '../lib/limits';
 import { maxUsersFor, PLANS } from '../lib/plans';
+import { allowedTimedExpiries, effectivePolicy, maxLifetimeDays } from '../lib/policy';
+import { audit, auditCsv, auditStatement, listAudit } from './audit';
 import { emailSchema, issueToken, newId, nameSchema, parseBody, tokenSchema, type SessionUser } from './auth';
 import { appLink, type Ctx } from './context';
 import { error, json, noContent, notFound, sha256Hex } from './http';
@@ -11,6 +14,14 @@ const DAY = 24 * 60 * 60 * 1000;
 
 function ownerOnly(user: SessionUser): Response | null {
   return user.role === 'owner' ? null : error(403, 'forbidden', 'Only the team owner can do that.');
+}
+
+/** Owner tools on Standard and Business: policies, audit log, shredding a member's notes. */
+function teamAdminOnly(user: SessionUser): Response | null {
+  return (
+    ownerOnly(user) ??
+    (PLANS[user.plan].limits.teamAdmin ? null : error(403, 'plan_limit', 'Team admin tools are included in Standard and Business.'))
+  );
 }
 
 export interface TeamMember {
@@ -72,6 +83,7 @@ export async function handleInvite(ctx: Ctx): Promise<Response> {
     .run();
 
   const token = await issueToken(ctx, 'invite', input.email, 7 * DAY, { teamId: user.teamId });
+  await audit(ctx, 'member.invited', input.email);
   sendInBackground(
     createMailer(ctx.env),
     inviteEmail(input.email, user.name, user.teamName, appLink(ctx.env, `/join#${token}`)),
@@ -86,9 +98,10 @@ export async function handleRevokeInvite(ctx: Ctx): Promise<Response> {
   if (denied) return denied;
   const input = await parseBody(ctx, z.strictObject({ email: emailSchema }));
   if (input instanceof Response) return input;
-  await ctx.env.DB.prepare("DELETE FROM email_tokens WHERE team_id = ?1 AND purpose = 'invite' AND email = ?2")
+  const revoked = await ctx.env.DB.prepare("DELETE FROM email_tokens WHERE team_id = ?1 AND purpose = 'invite' AND email = ?2")
     .bind(user.teamId, input.email)
     .run();
+  if (revoked.meta.changes > 0) await audit(ctx, 'invite.revoked', input.email);
   return noContent();
 }
 
@@ -108,8 +121,104 @@ export async function handleRemoveMember(ctx: Ctx, memberId: string): Promise<Re
     ctx.env.DB.prepare("UPDATE users SET team_id = ?2, role = 'owner' WHERE id = ?1").bind(memberId, teamId),
     // Sign them out so their next request picks up the new team.
     ctx.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(memberId),
+    auditStatement(ctx, { teamId: user.teamId, id: user.id, name: user.name }, 'member.removed', member.name),
   ]);
   return noContent();
+}
+
+/**
+ * Destroy every live note and cancel every open request a member created. Their history stays
+ * (marked destroyed) so the team can see what happened.
+ */
+export async function handleShredMember(ctx: Ctx, memberId: string): Promise<Response> {
+  const user = ctx.user!;
+  const denied = teamAdminOnly(user);
+  if (denied) return denied;
+  const member = await ctx.env.DB.prepare('SELECT name FROM users WHERE id = ?1 AND team_id = ?2')
+    .bind(memberId, user.teamId)
+    .first<{ name: string }>();
+  if (!member) return notFound();
+
+  const db = ctx.env.DB;
+  const liveNotes = `SELECT r.id FROM records r JOIN notes n ON n.id = r.id
+                      WHERE r.team_id = ?1 AND r.user_id = ?2 AND r.kind = 'note' AND n.team_id = ?1`;
+  const openRequests = `SELECT r.id FROM records r JOIN requests q ON q.id = r.id
+                         WHERE r.team_id = ?1 AND r.user_id = ?2 AND r.kind = 'request' AND q.team_id = ?1`;
+  const results = await db.batch([
+    db.prepare(`INSERT OR IGNORE INTO orphan_files (file_key, delete_after) SELECT file_key, ?3 FROM notes WHERE id IN (${liveNotes}) AND file_key IS NOT NULL`).bind(user.teamId, memberId, ctx.now),
+    db.prepare(`INSERT OR IGNORE INTO orphan_files (file_key, delete_after) SELECT file_key, ?3 FROM requests WHERE id IN (${openRequests}) AND file_key IS NOT NULL`).bind(user.teamId, memberId, ctx.now),
+    db.prepare(`INSERT INTO record_events (record_id, type, created_at) SELECT id, 'destroyed', ?3 FROM records WHERE id IN (${liveNotes}) OR id IN (${openRequests})`).bind(user.teamId, memberId, ctx.now),
+    db.prepare(`UPDATE records SET status = 'destroyed', updated_at = ?3 WHERE id IN (${liveNotes}) OR id IN (${openRequests})`).bind(user.teamId, memberId, ctx.now),
+    db.prepare('DELETE FROM notes WHERE team_id = ?1 AND id IN (SELECT id FROM records WHERE team_id = ?1 AND user_id = ?2 AND kind = \'note\')').bind(user.teamId, memberId),
+    db.prepare('DELETE FROM requests WHERE team_id = ?1 AND id IN (SELECT id FROM records WHERE team_id = ?1 AND user_id = ?2 AND kind = \'request\')').bind(user.teamId, memberId),
+  ]);
+  const notes = results[4]?.meta.changes ?? 0;
+  const requests = results[5]?.meta.changes ?? 0;
+  await audit(ctx, 'member.shredded', `${member.name} (${notes} notes, ${requests} requests)`);
+  return json({ notes, requests });
+}
+
+// --- policies and audit log ----------------------------------------------------------------------
+
+export const policySchema = z.strictObject({
+  requirePassword: z.boolean(),
+  maxExpiry: z.enum(Object.keys(TIMED_EXPIRY_DAYS) as [TimedExpiry]).nullable(),
+  requireSso: z.boolean(),
+});
+
+export async function handlePolicy(ctx: Ctx): Promise<Response> {
+  const user = ctx.user!;
+  const denied = teamAdminOnly(user);
+  if (denied) return denied;
+  const input = await parseBody(ctx, policySchema);
+  if (input instanceof Response) return input;
+  if (input.requireSso && !PLANS[user.plan].limits.ssoEnforcement) {
+    return error(403, 'plan_limit', 'Requiring Google or Microsoft sign-in is included in Business.');
+  }
+  const stored = { ...input, maxExpiry: input.maxExpiry && TIMED_EXPIRY_DAYS[input.maxExpiry] < PLANS[user.plan].limits.retentionDays ? input.maxExpiry : null };
+  const summary = [
+    stored.requirePassword ? 'passwords required' : 'passwords optional',
+    stored.maxExpiry ? `notes last at most ${TIMED_EXPIRY_LABELS[stored.maxExpiry]}` : 'no lifetime limit',
+    ...(PLANS[user.plan].limits.ssoEnforcement ? [stored.requireSso ? 'Google/Microsoft sign-in required' : 'any sign-in method'] : []),
+  ].join(', ');
+  await ctx.env.DB.batch([
+    ctx.env.DB.prepare('UPDATE teams SET policy_require_password = ?2, policy_max_expiry = ?3, policy_require_sso = ?4 WHERE id = ?1').bind(
+      user.teamId,
+      stored.requirePassword ? 1 : 0,
+      stored.maxExpiry,
+      stored.requireSso ? 1 : 0,
+    ),
+    auditStatement(ctx, { teamId: user.teamId, id: user.id, name: user.name }, 'policy.updated', summary),
+  ]);
+  return json({ policy: effectivePolicy(user.plan, stored) });
+}
+
+/** The rules a note must follow, for API clients and the browser extension. */
+export async function handleGetPolicy(ctx: Ctx): Promise<Response> {
+  const user = ctx.user!;
+  const plan = PLANS[user.plan];
+  return json({
+    plan: user.plan,
+    requirePassword: user.policy.requirePassword,
+    maxLifetimeDays: maxLifetimeDays(user.plan, user.policy),
+    timedExpiry: allowedTimedExpiries(user.plan, user.policy),
+    maxReads: MAX_READS,
+    attachmentBytes: plan.limits.attachmentBytes,
+  });
+}
+
+export async function handleAuditCsv(ctx: Ctx): Promise<Response> {
+  const user = ctx.user!;
+  const denied = teamAdminOnly(user);
+  if (denied) return denied;
+  const entries = await listAudit(ctx.env.DB, user.teamId, { limit: 50_000 });
+  const date = new Date(ctx.now).toISOString().slice(0, 10);
+  return new Response(auditCsv(entries), {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="vanishnote-audit-${date}.csv"`,
+    },
+  });
 }
 
 /** Peek at an invite (for the join page) without using it. */
@@ -158,6 +267,7 @@ export async function handleJoin(ctx: Ctx): Promise<Response> {
     ctx.env.DB.prepare("UPDATE users SET team_id = ?2, role = 'member' WHERE id = ?1").bind(user.id, target),
     ctx.env.DB.prepare('INSERT OR IGNORE INTO orphan_files (file_key, delete_after) SELECT brand_logo_key, ?2 FROM teams WHERE id = ?1 AND brand_logo_key IS NOT NULL').bind(old, ctx.now),
     ctx.env.DB.prepare('DELETE FROM teams WHERE id = ?1').bind(old),
+    auditStatement(ctx, { teamId: target, id: user.id, name: user.name }, 'member.joined'),
   ]);
   return noContent();
 }
@@ -169,6 +279,7 @@ export async function handleRenameTeam(ctx: Ctx): Promise<Response> {
   const input = await parseBody(ctx, z.strictObject({ name: nameSchema }));
   if (input instanceof Response) return input;
   await ctx.env.DB.prepare('UPDATE teams SET name = ?2 WHERE id = ?1').bind(user.teamId, input.name).run();
+  await audit(ctx, 'team.renamed', input.name);
   return noContent();
 }
 
@@ -234,6 +345,7 @@ export async function handleBranding(ctx: Ctx): Promise<Response> {
   }
   statements.push(
     ctx.env.DB.prepare('UPDATE teams SET brand_id = ?2, brand_name = ?3 WHERE id = ?1').bind(user.teamId, brandId, parsedName.data),
+    auditStatement(ctx, { teamId: user.teamId, id: user.id, name: user.name }, 'branding.updated', parsedName.data),
   );
   await ctx.env.DB.batch(statements);
   return json({ brandId });
@@ -248,6 +360,7 @@ export async function handleRemoveLogo(ctx: Ctx): Promise<Response> {
       'INSERT OR IGNORE INTO orphan_files (file_key, delete_after) SELECT brand_logo_key, ?2 FROM teams WHERE id = ?1 AND brand_logo_key IS NOT NULL',
     ).bind(user.teamId, ctx.now),
     ctx.env.DB.prepare('UPDATE teams SET brand_logo_key = NULL, brand_logo_type = NULL WHERE id = ?1').bind(user.teamId),
+    auditStatement(ctx, { teamId: user.teamId, id: user.id, name: user.name }, 'branding.logo_removed'),
   ]);
   return noContent();
 }

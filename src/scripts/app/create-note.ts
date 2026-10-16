@@ -123,6 +123,9 @@ export function initCreateNoteDialog(): void {
     if (!title) return fail('Give the note a title so you can find it later.', $('#cn-title'));
     if (text.value.trim() === '') return fail('Write the note first.', text);
     if (utf8ByteLength(text.value) > MAX_NOTE_BYTES) return fail(`The note is too long. The limit is ${MAX_NOTE_BYTES / 1024} KB.`, text);
+    if (dialog.dataset['requirePassword'] && !password.value) {
+      return fail('Your team requires a password on every note. Send it to the recipient a different way.', password);
+    }
     if (password.value !== confirm.value) return fail('The passwords don’t match.', confirm);
     const email = recipient.value.trim();
     if (email && !recipient.checkValidity()) return fail('Enter a valid email address for the recipient.', recipient);
