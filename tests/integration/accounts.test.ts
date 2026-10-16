@@ -927,3 +927,34 @@ describe('sign in with Google / Microsoft', () => {
     expect(viaGoogle.location).toBe('/app');
   });
 });
+describe('browser extension requests', () => {
+  it('accepts an account note as JSON with an API key from an extension origin, and applies team policies', async () => {
+    const user = await newUser('Eli Extension');
+    const created = (await (await api('POST', '/api/account/api-key', { json: { authKey: user.authKey }, cookie: user.cookie })).json()) as { key: string };
+    const send = async (meta: Record<string, unknown>) => {
+      const request = new Request(`${BASE}/api/account/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${created.key}`,
+          Origin: 'chrome-extension://abcdefghijklmnopabcdefghijklmnop',
+          'CF-Connecting-IP': '203.0.113.9',
+        },
+        body: JSON.stringify(meta),
+      });
+      return handleApi(createCtx(request, env, { now: clock }));
+    };
+    const sealed = await sealNote('from the extension', 'pw');
+    const ok = await send({ ...sealed.payload, title: 'From the toolbar', shred: { mode: 'read', maxReads: 1 } });
+    expect(ok.status).toBe(201);
+    const { id } = (await ok.json()) as { id: string };
+    expect(await decryptNote((await (await readNote(id)).json()) as { ciphertext: string; iv: string; salt: string }, sealed.linkKey, 'pw')).toBe('from the extension');
+
+    await env.DB.prepare("UPDATE teams SET plan = 'standard' WHERE id = ?1").bind(await teamOf(user.email)).run();
+    await api('POST', '/api/account/team/policy', { json: { requirePassword: true, maxExpiry: null, requireSso: false }, cookie: user.cookie });
+    const plain = await sealNote('no password');
+    const refused = await send({ ...plain.payload, title: 'No password', shred: { mode: 'read', maxReads: 1 } });
+    expect(refused.status).toBe(403);
+    expect(((await refused.json()) as { error: string }).error).toBe('policy');
+  });
+});

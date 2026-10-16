@@ -1,7 +1,7 @@
 // Renders the 1200×630 social cards: public/og.png (marketing pages) and public/og-note.png
 // (note links — deliberately generic, it must reveal nothing about any note), plus the app icons.
 // Run: node scripts/generate-og.mjs
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
@@ -68,6 +68,13 @@ for (const [file, size, rounded] of [
   writeFileSync(fileURLToPath(new URL(`../public/${file}`, import.meta.url)), await renderIcon(size, { rounded }));
   console.log(`wrote public/${file}`);
 }
+
+// Browser extension toolbar and store icons.
+mkdirSync(fileURLToPath(new URL('../extension/static/icons', import.meta.url)), { recursive: true });
+for (const size of [16, 32, 48, 128]) {
+  writeFileSync(fileURLToPath(new URL(`../extension/static/icons/icon-${size}.png`, import.meta.url)), await renderIcon(size, { rounded: true }));
+}
+console.log('wrote extension/static/icons');
 
 // favicon.ico holding PNG images (valid since Windows Vista; every current browser reads it).
 const icoImages = [[32, await renderIcon(32, { rounded: true })], [48, await renderIcon(48, { rounded: true })]];

@@ -198,6 +198,8 @@ export async function handleGetPolicy(ctx: Ctx): Promise<Response> {
   const user = ctx.user!;
   const plan = PLANS[user.plan];
   return json({
+    name: user.name,
+    teamName: user.teamName,
     plan: user.plan,
     requirePassword: user.policy.requirePassword,
     maxLifetimeDays: maxLifetimeDays(user.plan, user.policy),

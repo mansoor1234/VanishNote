@@ -285,6 +285,17 @@ scripts/           generate-og.mjs (social images and push icon), generate-vapid
   envelope) was discussed. **Accepting plaintext content and passwords server-side was flagged
   as breaking the core promise. Don't do it without explicit user approval.**
 - **Billing (Stripe) is not connected.** Plans are set by SQL; Stripe was deliberately postponed.
+- **Business features (added 2026-10-17):**
+  - Team admin for owners on Standard and Business (`/app/admin`, `src/server/team.ts`,
+    `src/server/audit.ts`, `src/lib/policy.ts`): policies (require password, max lifetime;
+    Business: require SSO), audit log + CSV, shred a member's live notes, dashboard member
+    filter. Policies are enforced server-side in `handleCreateAccountNote` / `handleCreateRequest`.
+  - SSO with Google/Microsoft (`src/server/sso.ts`, migration 0005). Buttons stay hidden until
+    `GOOGLE_CLIENT_ID`/`MICROSOFT_CLIENT_ID` (vars) and the matching secrets are set; the user
+    still has to create the Google OAuth client and Microsoft app (README "Single sign-on").
+  - Browser extension (`extension/`, `npm run build:extension`): not yet published to the
+    Chrome/Edge/Firefox stores (needs the user's developer accounts).
+  - Migrations 0004 and 0005 must be applied remotely **before** deploying code that uses them.
 - **Not verified end to end against real services:** Resend delivery, Turnstile with real keys,
   Web Push delivery to a real device, and R2/cron in production. (Inbound mail to `hello@` and
   `security@` is verified.)

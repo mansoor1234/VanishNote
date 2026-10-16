@@ -1,3 +1,4 @@
+import { MAX_REQUEST_BYTES } from '../lib/limits';
 import { PRIVATE_PATH } from '../lib/private-paths';
 import type { ErrorResponse } from '../lib/schema';
 
@@ -149,6 +150,11 @@ export async function readMultipart(
   maxBytes: number,
 ): Promise<{ meta: unknown; file: File | null }> {
   const type = request.headers.get('Content-Type') ?? '';
+  // Without an attachment, the meta object may be sent as plain JSON (API clients and the browser
+  // extension, whose cross-site multipart POSTs Astro's origin check would refuse).
+  if (/^application\/json\b/i.test(type)) {
+    return { meta: await readJson(request, MAX_REQUEST_BYTES), file: null };
+  }
   if (!/^multipart\/form-data\s*;/i.test(type)) {
     throw new BodyError(415, 'unsupported_media_type', 'Expected a multipart/form-data body.');
   }

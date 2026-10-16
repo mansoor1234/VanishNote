@@ -67,6 +67,13 @@ password or tampered byte gives the same `DecryptionError`.
   password and sessions (pre-registration takeover). A provider sign-in skips our email-code 2FA:
   the provider authenticates. Accounts created this way have no usable password until the user
   sets one by reset link; an account can't disconnect its last sign-in method.
+- **Browser extension** (`extension/`): encrypts with the same `src/lib/crypto.ts` before
+  sending, so the server sees what it sees from the website. It asks only for `contextMenus`,
+  `storage` and the Vanishnote origin: it can't read or change other pages. Selected text passes
+  through memory-only `storage.session` and is deleted when the popup opens; note text is never
+  stored. The optional API key sits in `storage.local` in that browser profile. Extension pages
+  run under a CSP with `script-src 'self'`. It sends JSON (account notes accept JSON without an
+  attachment), because Astro's origin check refuses cross-site form posts.
 - **Required SSO** (Business policy): members' password logins and password resets are refused;
   the owner can always use a password, so the team can't be locked out.
 - **Team policies** (owner, Standard and Business: required password, maximum lifetime) are

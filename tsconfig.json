@@ -1,6 +1,6 @@
 {
   "extends": "astro/tsconfigs/strictest",
-  "include": [".astro/types.d.ts", "worker-configuration.d.ts", "src", "tests", "*.config.ts"],
+  "include": [".astro/types.d.ts", "worker-configuration.d.ts", "src", "tests", "extension/src", "*.config.ts"],
   "exclude": ["dist", "node_modules"],
   "compilerOptions": {
     "types": ["node"],

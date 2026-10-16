@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vanishnote</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="popup">
+    <header class="top">
+      <img src="icons/mark.svg" width="26" height="26" alt="" />
+      <span class="brand">Vanishnote</span>
+      <button type="button" class="ghost" data-open-settings title="Settings">Settings</button>
+    </header>
+
+    <main>
+      <div data-state="form">
+        <p class="badge">🔒 Encrypted in this browser. We can’t read it.</p>
+        <p class="mode" data-mode>Checking your account…</p>
+
+        <form novalidate>
+          <div data-account hidden>
+            <label for="title">Title <span class="muted">(shown in your dashboard)</span></label>
+            <input id="title" maxlength="120" placeholder="e.g. Wi-Fi for the office" autocomplete="off" />
+          </div>
+
+          <label for="text">Note</label>
+          <textarea id="text" rows="7" placeholder="Paste a password, key or private message…" autocomplete="off" spellcheck="false"></textarea>
+          <p class="hint" data-size></p>
+
+          <div class="row">
+            <div>
+              <label for="password" data-password-label>Password <span class="muted">(optional)</span></label>
+              <input id="password" type="password" autocomplete="new-password" />
+            </div>
+            <div>
+              <label for="confirm">Confirm</label>
+              <input id="confirm" type="password" autocomplete="new-password" />
+            </div>
+          </div>
+
+          <div class="row" data-quick>
+            <div>
+              <label for="expires">Unread notes expire</label>
+              <select id="expires">
+                <option value="1h">After 1 hour</option>
+                <option value="1d">After 1 day</option>
+                <option value="7d" selected>After 7 days</option>
+              </select>
+            </div>
+            <div>
+              <label for="quick-reads">Destroy after</label>
+              <select id="quick-reads">
+                <option value="1" selected>1 view</option>
+                <option value="2">2 views</option>
+                <option value="3">3 views</option>
+                <option value="5">5 views</option>
+                <option value="10">10 views</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" data-account hidden>
+            <div>
+              <label for="timed">Shred</label>
+              <select id="timed"></select>
+            </div>
+            <div data-reads-row>
+              <label for="reads">Destroy after</label>
+              <select id="reads"></select>
+            </div>
+          </div>
+
+          <p class="error" role="alert" data-error hidden></p>
+          <button type="submit" class="primary" data-submit>Create secure link</button>
+        </form>
+      </div>
+
+      <div data-state="result" hidden>
+        <h1>Your link is ready</h1>
+        <p class="warn">Copied. Share it now: we can’t show it again, because the key is inside the link.</p>
+        <label for="link">Link</label>
+        <div class="copy-row">
+          <input id="link" readonly />
+          <button type="button" class="primary" data-copy>Copy link</button>
+        </div>
+        <p class="hint" data-password-tip hidden>Send the password a different way, for example by phone.</p>
+        <div data-destroy hidden>
+          <label for="destroy-link">Your private destroy link</label>
+          <input id="destroy-link" readonly />
+          <p class="hint">Keep this one to yourself. It deletes the note before it’s read.</p>
+        </div>
+        <button type="button" class="secondary" data-again>Write another note</button>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <a data-server-link="/how-it-works" target="_blank" rel="noopener">How it works</a>
+      <a data-server-link="/security" target="_blank" rel="noopener">Security</a>
+    </footer>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

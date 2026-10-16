@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vanishnote settings</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="options">
+    <header class="top">
+      <img src="icons/mark.svg" width="28" height="28" alt="" />
+      <span class="brand">Vanishnote</span>
+    </header>
+    <main>
+      <h1>Connect your account <span class="muted">(optional)</span></h1>
+      <p>
+        Without a key, the extension sends quick notes that need no account, like the
+        <a data-server-link="/" target="_blank" rel="noopener">home page</a>. With your API key, notes go into your
+        dashboard with their activity history, and your team’s policies apply.
+      </p>
+      <ol>
+        <li>Open <a data-server-link="/app/settings#api-key" target="_blank" rel="noopener">Settings → Your API key</a> on Vanishnote.</li>
+        <li>Create a key and paste it here. It’s stored only in this browser profile.</li>
+      </ol>
+      <form novalidate>
+        <label for="api-key">API key</label>
+        <div class="copy-row">
+          <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="vn_…" />
+          <button type="submit" class="primary">Save</button>
+        </div>
+        <p role="status" class="status muted" data-status></p>
+        <button type="button" class="secondary" data-remove hidden>Remove key</button>
+      </form>
+      <p class="hint">
+        Notes are encrypted in the extension before they’re sent. The key that opens a note is only in its link, and
+        never reaches Vanishnote. Anyone with your API key can create notes as you: revoke it in Settings if it leaks.
+      </p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

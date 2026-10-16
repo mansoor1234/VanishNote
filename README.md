@@ -115,6 +115,30 @@ files: the new code reads the new columns, and every signed-in page fails until 
 The hourly cron expires notes and requests, enforces each plan's retention on history, clears
 expired sessions and tokens, and deletes R2 files nothing can reach any more.
 
+## Browser extension
+
+`extension/` is a Manifest V3 extension for Chrome, Edge and Firefox: a toolbar popup and a
+right-click "Send as a self-destructing Vanishnote" for selected text. Notes are encrypted in the
+extension with `src/lib/crypto.ts`. Without an API key it sends quick notes (like the home page);
+with one (Settings → Your API key, pasted in the extension's settings) notes go to the dashboard
+and team policies apply. Permissions: `contextMenus`, `storage`, and the Vanishnote site only.
+
+```sh
+npm run build:extension      # dist-extension/chrome, dist-extension/firefox, and store zips
+node scripts/build-extension.mjs --server http://localhost:8787   # for local testing (no zips)
+```
+
+- **Try it:** Chrome/Edge → `chrome://extensions` → Developer mode → **Load unpacked** →
+  `dist-extension/chrome`. Firefox → `about:debugging` → This Firefox → **Load Temporary Add-on**
+  → `dist-extension/firefox/manifest.json`.
+- **Publish:** upload `vanishnote-chrome-<version>.zip` to the
+  [Chrome Web Store](https://chrome.google.com/webstore/devconsole) (one-time US$5 developer fee)
+  and the [Edge Add-ons](https://partner.microsoft.com/dashboard/microsoftedge) dashboard (free),
+  and `vanishnote-firefox-<version>.zip` to [addons.mozilla.org](https://addons.mozilla.org/developers/)
+  (free). Store listings ask for a privacy policy URL: use `https://vanishnote.net/privacy`.
+- **New version:** bump `extension/version.json`, rebuild, upload. Icons come from
+  `node scripts/generate-og.mjs`.
+
 ## Single sign-on (Google and Microsoft)
 
 Each button appears once its client ID and secret are set. Redirect URIs are
