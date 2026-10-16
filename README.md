@@ -83,6 +83,10 @@ exercise the real database engine.
 | `VAPID_PUBLIC_KEY`     | `wrangler.toml`                | Web Push public key. Empty: push is turned off (email still works). |
 | `VAPID_PRIVATE_KEY`    | secret                         | Web Push private key. Generate both with `node scripts/generate-vapid.mjs`. |
 | `VAPID_SUBJECT`        | `wrangler.toml`                | `mailto:` contact for push services |
+| `GOOGLE_CLIENT_ID`     | `wrangler.toml`                | Google OAuth client ID. Empty: no Google button. See Single sign-on. |
+| `GOOGLE_CLIENT_SECRET` | secret                         | Google OAuth client secret |
+| `MICROSOFT_CLIENT_ID`  | `wrangler.toml`                | Microsoft Entra application (client) ID. Empty: no Microsoft button. |
+| `MICROSOFT_CLIENT_SECRET` | secret                      | Microsoft Entra client secret (expires: set a reminder) |
 | `DEV_OUTBOX`           | `--var` locally only           | See Local setup |
 
 Bindings in `wrangler.toml`: `DB` (D1), `FILES` (R2, encrypted attachments and logos),
@@ -105,8 +109,40 @@ npx wrangler secret put VAPID_PRIVATE_KEY
 npm run deploy
 ```
 
+**Always run `npm run db:migrate:remote` before `npm run deploy`** when `migrations/` has new
+files: the new code reads the new columns, and every signed-in page fails until they exist.
+
 The hourly cron expires notes and requests, enforces each plan's retention on history, clears
 expired sessions and tokens, and deletes R2 files nothing can reach any more.
+
+## Single sign-on (Google and Microsoft)
+
+Each button appears once its client ID and secret are set. Redirect URIs are
+`https://vanishnote.net/api/auth/sso/google/callback` and
+`https://vanishnote.net/api/auth/sso/microsoft/callback` (add the `http://localhost:8787/…`
+versions too for local testing).
+
+**Google** ([console.cloud.google.com](https://console.cloud.google.com)):
+
+1. Create a project → **APIs & Services → OAuth consent screen**: External, app name
+   "Vanishnote", support email, logo, links to `/privacy` and `/terms`. Scopes: `openid`, `email`,
+   `profile` (no verification review is needed for these). Publish the app.
+2. **Credentials → Create credentials → OAuth client ID → Web application**. Authorized redirect
+   URI: the Google one above.
+3. Put the client ID in `wrangler.toml` (`GOOGLE_CLIENT_ID`) and run
+   `npx wrangler secret put GOOGLE_CLIENT_SECRET`.
+
+**Microsoft** ([entra.microsoft.com](https://entra.microsoft.com) → App registrations → New):
+
+1. Supported account types: **Accounts in any organizational directory and personal Microsoft
+   accounts**. Redirect URI (Web): the Microsoft one above.
+2. **Token configuration → Add optional claim → ID → `email` and `xms_edov`**. Without
+   `xms_edov`, work accounts can't be matched to an existing account by email (users can still
+   connect Microsoft from Settings while signed in, or sign up with it).
+3. **Certificates & secrets → New client secret**. Copy the *value* and run
+   `npx wrangler secret put MICROSOFT_CLIENT_SECRET`. Secrets expire (up to 24 months): set a
+   reminder to rotate it.
+4. Put the **Application (client) ID** in `wrangler.toml` (`MICROSOFT_CLIENT_ID`).
 
 Regenerate the social images and push icon after branding changes with
 `node scripts/generate-og.mjs`.

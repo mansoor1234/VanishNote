@@ -5,12 +5,21 @@ import App from '../../layouts/App.astro';
 import { LEGAL_UPDATED } from '../../lib/site';
 import { requestCtx } from '../../server/deps';
 import { accountSecurity } from '../../server/settings';
+import { enabledProviders, PROVIDERS, signInMethods, SSO_ERRORS } from '../../server/sso';
 
 export const prerender = false;
 const user = Astro.locals.user!;
 const vapidKey = env.VAPID_PUBLIC_KEY;
 const ctx = requestCtx(Astro.locals, Astro.request);
 const security = await accountSecurity(ctx.env.DB, user.id, ctx.now);
+const methods = await signInMethods(ctx.env.DB, user.id);
+const providers = enabledProviders(ctx.env);
+const ssoError = Astro.url.searchParams.get('sso_error');
+const ssoMessage = Astro.url.searchParams.get('sso') === 'linked'
+  ? { ok: true, text: 'Connected. You can now log in with it.' }
+  : ssoError
+    ? { ok: false, text: SSO_ERRORS[ssoError] ?? SSO_ERRORS['failed']! }
+    : null;
 const consentCurrent = security.termsVersion === LEGAL_UPDATED;
 const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
 const fmt = (ms: number | null) => (ms ? dateFormat.format(new Date(ms)) : null);
@@ -22,6 +31,7 @@ const ICONS = {
   bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
   key: 'M15 7a4 4 0 1 1-3.9 4.9L3 20v-3h3v-3h3l2.1-2.1A4 4 0 0 1 15 7zM16 9h.01',
   card: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18M7 15h3',
+  link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
 };
 ---
 
@@ -44,8 +54,50 @@ const ICONS = {
       </form>
     </SettingsCard>
 
+    <SettingsCard id="sign-in-methods" title="Sign-in methods" subtitle="Log in with Google or Microsoft instead of typing a password." icon={ICONS.link}>
+      {ssoMessage && <p class:list={['mb-4', ssoMessage.ok ? 'notice-success' : 'notice-danger']} role="status">{ssoMessage.text}</p>}
+      <ul class="divide-y divide-line">
+        <li class="flex flex-wrap items-center gap-3 py-3">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold">Email and password</p>
+            <p class="text-sm text-muted">{methods.hasPassword ? 'Set up' : 'Not set. Use “Forgot password” on the log-in page to create one.'}</p>
+          </div>
+        </li>
+        {
+          (['google', 'microsoft'] as const).map((p) => {
+            const identity = methods.identities.find((i) => i.provider === p);
+            const available = providers.includes(p);
+            if (!identity && !available) return null;
+            return (
+              <li class="flex flex-wrap items-center gap-3 py-3">
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold">{PROVIDERS[p].name}</p>
+                  <p class="truncate text-sm text-muted">{identity ? `Connected as ${identity.email || 'your account'}` : 'Not connected'}</p>
+                </div>
+                {identity ? (
+                  <button type="button" class="btn-secondary min-h-9 py-1.5 text-sm" data-sso-unlink={p}>Disconnect</button>
+                ) : (
+                  <a href={`/api/auth/sso/${p}/start?mode=link`} class="btn-secondary min-h-9 py-1.5 text-sm">Connect</a>
+                )}
+              </li>
+            );
+          })
+        }
+      </ul>
+      {providers.length === 0 && methods.identities.length === 0 && (
+        <p class="text-sm text-muted">Google and Microsoft sign-in aren’t set up on this server yet.</p>
+      )}
+      <p role="status" class="mt-2 text-sm" data-sso-status></p>
+    </SettingsCard>
+
     <SettingsCard id="password" title="Password" subtitle="It never leaves your browser, so we can’t see or recover it." icon={ICONS.lock}>
-      <form class="space-y-4" data-form="password" data-email={user.email} novalidate>
+      {!methods.hasPassword && (
+        <p class="notice-warn mb-4">
+          You sign in with {methods.identities.map((i) => PROVIDERS[i.provider].name).join(' or ')} and have no password yet. Some actions here (API key,
+          two-factor, deleting your account) ask for one. <a class="link" href="/forgot">Create a password</a> with an emailed link.
+        </p>
+      )}
+      <form class="space-y-4" data-form="password" data-email={user.email} novalidate hidden={!methods.hasPassword}>
         <div>
           <label for="s-current" class="field-label">Current password</label>
           <input id="s-current" name="current" type="password" class="input" autocomplete="current-password" required />

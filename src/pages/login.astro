@@ -1,10 +1,12 @@
 ---
+import SsoButtons from '../components/SsoButtons.astro';
 import Auth from '../layouts/Auth.astro';
 
 export const prerender = false;
 ---
 
 <Auth title="Log in" description="Log in to your Vanishnote dashboard." heading="Welcome back" privatePage={false}>
+  <SsoButtons mode="login" />
   <form class="space-y-4" data-auth-form="login" novalidate>
     <div>
       <label for="email" class="field-label">Email</label>

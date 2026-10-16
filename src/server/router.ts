@@ -26,6 +26,7 @@ import {
 } from './account-notes';
 import type { Ctx } from './context';
 import { error, tooManyRequests } from './http';
+import { handleSsoCallback, handleSsoStart, handleSsoUnlink } from './sso';
 import { handleCreateRequest, handleOpenRequest, handleRequestKey, handleRespond } from './requests';
 import {
   handleChangePassword,
@@ -80,6 +81,10 @@ const routes: Route[] = [
   { method: 'POST', pattern: /^\/api\/auth\/logout$/, handler: handleLogout },
   { method: 'POST', pattern: /^\/api\/auth\/forgot$/, handler: handleForgot, limiter: 'AUTH_LIMITER' },
   { method: 'POST', pattern: /^\/api\/auth\/reset$/, handler: handleReset, limiter: 'AUTH_LIMITER' },
+  // Sign in with Google / Microsoft (browser redirects, not fetch)
+  { method: 'GET', pattern: /^\/api\/auth\/sso\/([a-z]{1,20})\/start$/, handler: handleSsoStart, limiter: 'AUTH_LIMITER' },
+  { method: 'GET', pattern: /^\/api\/auth\/sso\/([a-z]{1,20})\/callback$/, handler: handleSsoCallback, limiter: 'AUTH_LIMITER' },
+  { method: 'DELETE', pattern: /^\/api\/account\/sso\/([a-z]{1,20})$/, handler: handleSsoUnlink, auth: true },
 
   // Dashboard: notes, requests, activity (also usable with an API key)
   { method: 'GET', pattern: /^\/api\/account\/records$/, handler: handleListRecords, auth: true, apiKey: true },

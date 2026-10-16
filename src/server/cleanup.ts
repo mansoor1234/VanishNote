@@ -37,6 +37,7 @@ export async function runCleanup(env: Pick<AppEnv, 'DB' | 'FILES'>, now: number)
     db.prepare('DELETE FROM download_grants WHERE expires_at <= ?1').bind(now),
     db.prepare('DELETE FROM trusted_devices WHERE expires_at <= ?1').bind(now),
     db.prepare('DELETE FROM login_challenges WHERE expires_at <= ?1').bind(now),
+    db.prepare('DELETE FROM sso_states WHERE expires_at <= ?1').bind(now),
     db.prepare('DELETE FROM dev_outbox WHERE created_at <= ?1').bind(now - 24 * 60 * 60 * 1000),
     // Audit log: kept for the team's plan retention.
     ...PLAN_ORDER.map((plan) =>

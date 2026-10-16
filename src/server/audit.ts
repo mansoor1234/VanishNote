@@ -24,6 +24,8 @@ export const AUDIT_ACTIONS = {
   'security.2fa_off': 'Turned off two-factor sign-in',
   'api_key.created': 'Created an API key',
   'api_key.revoked': 'Revoked their API key',
+  'sso.linked': 'Connected sign-in with',
+  'sso.unlinked': 'Disconnected sign-in with',
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

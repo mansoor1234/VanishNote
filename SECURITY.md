@@ -56,6 +56,19 @@ password or tampered byte gives the same `DecryptionError`.
   closed except on localhost.
 - Monthly quotas are enforced with a single conditional `INSERT … ON CONFLICT DO UPDATE … WHERE`,
   so concurrent requests can't overshoot them (tested).
+- **Sign in with Google / Microsoft** (`src/server/sso.ts`, OpenID Connect code flow with PKCE).
+  The account password never encrypts notes, so a provider sign-in doesn't change what we can
+  read. State is single-use, hashed, 10 minutes, and tied to a cookie in the starting browser
+  (no login CSRF); a nonce binds the ID token. The token comes from the provider's token endpoint
+  over TLS with our client secret, so its signature isn't re-checked (OIDC Core 3.1.3.7); issuer,
+  audience, expiry and nonce are. An existing account is matched by email only if the provider
+  verified it (Google `email_verified`; Microsoft personal accounts, or `xms_edov` for work
+  accounts, since a tenant admin can set any email). Matching an *unconfirmed* account wipes its
+  password and sessions (pre-registration takeover). A provider sign-in skips our email-code 2FA:
+  the provider authenticates. Accounts created this way have no usable password until the user
+  sets one by reset link; an account can't disconnect its last sign-in method.
+- **Required SSO** (Business policy): members' password logins and password resets are refused;
+  the owner can always use a password, so the team can't be locked out.
 - **Team policies** (owner, Standard and Business: required password, maximum lifetime) are
   enforced by the server on every note and request, whatever the client (dashboard, API key,
   browser extension). The server can't see whether a password is strong, only that the note

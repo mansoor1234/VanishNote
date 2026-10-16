@@ -1,4 +1,5 @@
 ---
+import SsoButtons from '../components/SsoButtons.astro';
 import Turnstile from '../components/Turnstile.astro';
 import Auth from '../layouts/Auth.astro';
 import { isPlanId, PLANS } from '../lib/plans';
@@ -16,10 +17,11 @@ const wanted = isPlanId(plan) && plan !== 'free' ? PLANS[plan] : null;
   turnstile
   privatePage={false}
 >
+  {wanted && (
+    <p class="notice-success mb-4">You can switch to {wanted.name} from the Subscription page once your account is ready.</p>
+  )}
+  <SsoButtons mode="signup" />
   <form class="space-y-4" data-auth-form="signup" novalidate>
-    {wanted && (
-      <p class="notice-success">You can switch to {wanted.name} from the Subscription page once your account is ready.</p>
-    )}
     <div>
       <label for="name" class="field-label">Name</label>
       <input id="name" name="name" class="input" autocomplete="name" required maxlength="80" />
@@ -43,7 +45,7 @@ const wanted = isPlanId(plan) && plan !== 'free' ? PLANS[plan] : null;
     <div class="flex items-start gap-3">
       <input id="accept-terms" name="acceptTerms" type="checkbox" class="mt-1 size-5 shrink-0 accent-accent" required />
       <label for="accept-terms" class="text-sm">
-        I agree to the <a class="link" href="/terms" target="_blank" rel="noopener">terms of use</a> and
+        I agree to the <a class="link" href="/terms" target="_blank" rel="noopener">terms of use</a> and{' '}
         <a class="link" href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
       </label>
     </div>

@@ -161,4 +161,6 @@ export const PRICING_ROWS: { label: string; value: (plan: Plan) => string | bool
   { label: 'Company branded notes and emails', value: (p) => p.limits.branding },
   { label: 'Team policies: required passwords, maximum lifetime', value: (p) => p.limits.teamAdmin },
   { label: 'Audit log with CSV export', value: (p) => p.limits.teamAdmin },
+  { label: 'Sign in with Google or Microsoft', value: () => true },
+  { label: 'Require Google or Microsoft sign-in for the team', value: (p) => p.limits.ssoEnforcement },
 ];

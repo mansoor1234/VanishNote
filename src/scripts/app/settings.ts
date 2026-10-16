@@ -40,6 +40,23 @@ export function bindForm(
 
 export function initSettings(): void {
   initPasswordToggles();
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-sso-unlink]')) {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      const r = await del(`/api/account/sso/${button.dataset['ssoUnlink']}`);
+      if (r.ok) {
+        // A fresh load (not just a hash change) so the card shows the new state.
+        location.assign('/app/settings');
+        return;
+      }
+      const status = document.querySelector<HTMLElement>('[data-sso-status]');
+      if (status) {
+        status.className = 'mt-2 text-sm text-danger';
+        status.textContent = r.message;
+      }
+      button.disabled = false;
+    });
+  }
   const profile = document.querySelector<HTMLFormElement>('form[data-form="profile"]');
   if (profile) {
     bindForm(profile, async (data) => {

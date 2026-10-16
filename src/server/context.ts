@@ -13,6 +13,11 @@ export interface AppEnv {
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
+  /** Sign in with Google / Microsoft. Each provider is off until its id and secret are set. */
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  MICROSOFT_CLIENT_ID?: string;
+  MICROSOFT_CLIENT_SECRET?: string;
   CREATE_LIMITER?: Limiter;
   READ_LIMITER?: Limiter;
   AUTH_LIMITER?: Limiter;

@@ -33,7 +33,12 @@ TURNSTILE_SITE_KEY = "0x4AAAAAAFXWh1b_aO-pNpxf"
 # Web Push VAPID public key (base64url, 65-byte uncompressed P-256). Generate with `node scripts/generate-vapid.mjs`.
 VAPID_PUBLIC_KEY = "BOJJAdZR3HBusqq_K0QiwlPtq9-aOUEq1xsHkouij8RJFudIJlRh92o_U-sU1pE8P9f2Xeij2Wygj8aCocIFRmk"
 VAPID_SUBJECT = "mailto:hello@vanishnote.net"
-# Secrets (wrangler secret put / .dev.vars): RESEND_API_KEY, TURNSTILE_SECRET_KEY, VAPID_PRIVATE_KEY
+# Sign in with Google / Microsoft (OpenID Connect). Empty = that button is hidden. The matching
+# secrets are GOOGLE_CLIENT_SECRET and MICROSOFT_CLIENT_SECRET. Setup steps: README "Single sign-on".
+GOOGLE_CLIENT_ID = ""
+MICROSOFT_CLIENT_ID = ""
+# Secrets (wrangler secret put / .dev.vars): RESEND_API_KEY, TURNSTILE_SECRET_KEY, VAPID_PRIVATE_KEY,
+# GOOGLE_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET
 
 # Encrypted attachments (D1 can't hold values over ~2 MB). Only ciphertext is stored here.
 [[r2_buckets]]

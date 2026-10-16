@@ -12,6 +12,7 @@ import { isPlanId, type PlanId } from '../lib/plans';
 import { effectivePolicy, type TeamPolicy } from '../lib/policy';
 import { LEGAL_UPDATED } from '../lib/site';
 import { auditSignIn } from './audit';
+import { ssoRequiredFor } from './sso';
 import { appLink, type Ctx } from './context';
 import { error, json, readJson, sha256Hex, BodyError } from './http';
 import { createMailer, sendInBackground } from './mail';
@@ -354,6 +355,9 @@ export async function handleLogin(ctx: Ctx): Promise<Response> {
   if (user.email_verified_at === null) {
     return error(403, 'unverified', 'Please confirm your email first. We can send you a new link.');
   }
+  if (await ssoRequiredFor(ctx.env.DB, user.id)) {
+    return error(403, 'sso_required', 'Your team signs in with Google or Microsoft. Use one of the buttons below.');
+  }
 
   // Two-factor: a browser we haven't seen before must also enter a code we email.
   if (user.two_factor === 1 && !(await isTrustedDevice(ctx, user.id))) {
@@ -428,10 +432,13 @@ export async function handleReset(ctx: Ctx): Promise<Response> {
   if (!token?.user_id || token.email !== input.email) {
     return error(400, 'invalid_token', 'This reset link has expired or doesn’t match that email. Ask for a new one.');
   }
+  if (await ssoRequiredFor(ctx.env.DB, token.user_id)) {
+    return error(403, 'sso_required', 'Your team signs in with Google or Microsoft, so a password can’t be used. Log in with one of those instead.');
+  }
   const salt = toBase64Url(randomBytes(16));
   await ctx.env.DB.batch([
     ctx.env.DB.prepare(
-      'UPDATE users SET auth_salt = ?2, auth_hash = ?3, email_verified_at = COALESCE(email_verified_at, ?4) WHERE id = ?1',
+      'UPDATE users SET auth_salt = ?2, auth_hash = ?3, has_password = 1, email_verified_at = COALESCE(email_verified_at, ?4) WHERE id = ?1',
     ).bind(token.user_id, salt, await hashAuthKey(salt, input.authKey), ctx.now),
     // Log out everywhere else and forget remembered devices (they'll need a 2FA code again).
     ctx.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(token.user_id),

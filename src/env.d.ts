@@ -9,6 +9,10 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET_KEY?: string;
     /** Secret. Web Push VAPID private key (base64url P-256 scalar). Unset disables push. */
     VAPID_PRIVATE_KEY?: string;
+    /** Secret. Google OAuth client secret. With GOOGLE_CLIENT_ID, enables "Continue with Google". */
+    GOOGLE_CLIENT_SECRET?: string;
+    /** Secret. Microsoft Entra app client secret. With MICROSOFT_CLIENT_ID, enables "Continue with Microsoft". */
+    MICROSOFT_CLIENT_SECRET?: string;
     /** Local development only: "true" writes emails to the dev_outbox table instead of sending. */
     DEV_OUTBOX?: string;
   }

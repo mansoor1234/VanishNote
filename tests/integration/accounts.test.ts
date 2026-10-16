@@ -13,6 +13,7 @@ import {
 } from '../../src/lib/crypto';
 import { handleReadNote } from '../../src/server/api';
 import { runCleanup } from '../../src/server/cleanup';
+import { ssoDeps } from '../../src/server/sso';
 import { createCtx, type AppEnv } from '../../src/server/context';
 import { onAccountNoteRead } from '../../src/server/records';
 import { handleApi } from '../../src/server/router';
@@ -752,5 +753,177 @@ describe('team admin: policies, audit log, shredding a member', () => {
     expect(await count()).toBeGreaterThan(0);
     await runCleanup(env, clock + 184 * 24 * 60 * 60 * 1000);
     expect(await count()).toBe(0);
+  });
+});
+describe('sign in with Google / Microsoft', () => {
+  const MS_CONSUMER = '9188040d-6c67-4c5b-b112-36a304b66dad';
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const jwt = (claims: Record<string, unknown>) => `${b64({ alg: 'RS256' })}.${b64(claims)}.sig`;
+
+  beforeAll(() => {
+    env.GOOGLE_CLIENT_ID = 'google-client';
+    env.GOOGLE_CLIENT_SECRET = 'google-secret';
+    env.MICROSOFT_CLIENT_ID = 'ms-client';
+    env.MICROSOFT_CLIENT_SECRET = 'ms-secret';
+  });
+  afterAll(() => {
+    ssoDeps.fetch = (input, init) => fetch(input, init);
+  });
+
+  const googleClaims = (email: string, extra: Record<string, unknown> = {}) => ({
+    iss: 'https://accounts.google.com',
+    sub: `g-${email}`,
+    email,
+    email_verified: true,
+    name: 'Gail Google',
+    ...extra,
+  });
+
+  /** Start → (provider) → callback, with the provider's token endpoint faked. */
+  async function sso(opts: {
+    provider?: 'google' | 'microsoft';
+    mode?: 'login' | 'signup' | 'link';
+    claims: Record<string, unknown>;
+    cookie?: string;
+    query?: string;
+    tamper?: (p: { state: string; stateCookie: string; nonce: string }) => { state?: string; stateCookie?: string; nonce?: string };
+  }) {
+    const provider = opts.provider ?? 'google';
+    const mode = opts.mode ?? 'login';
+    const start = await api('GET', `/api/auth/sso/${provider}/start?mode=${mode}${mode === 'signup' ? '&terms=1' : ''}${opts.query ?? ''}`, opts.cookie ? { cookie: opts.cookie } : {});
+    expect(start.status).toBe(302);
+    const target = new URL(start.headers.get('Location')!);
+    const p = {
+      state: target.searchParams.get('state')!,
+      nonce: target.searchParams.get('nonce')!,
+      stateCookie: start.headers.getSetCookie()[0]!.split(';')[0]!,
+    };
+    const t = { ...p, ...(opts.tamper?.(p) ?? {}) };
+    let tokenRequest: URLSearchParams | undefined;
+    ssoDeps.fetch = async (_url, init) => {
+      tokenRequest = new URLSearchParams(String(init?.body));
+      const aud = provider === 'google' ? 'google-client' : 'ms-client';
+      return Response.json({ id_token: jwt({ aud, exp: Math.floor(clock / 1000) + 300, nonce: t.nonce, ...opts.claims }) });
+    };
+    const cookie = [t.stateCookie, opts.cookie].filter(Boolean).join('; ');
+    const res = await api('GET', `/api/auth/sso/${provider}/callback?code=the-code&state=${t.state}`, { cookie });
+    const session = res.headers.getSetCookie().find((c) => c.startsWith('vn_session='))?.split(';')[0];
+    return { res, location: res.headers.get('Location'), session, target, tokenRequest };
+  }
+
+  it('signs up with Google: verified account, no password, terms recorded, PKCE used', async () => {
+    const email = `gail-${Date.now()}@gmail.com`;
+    const { location, session, target, tokenRequest } = await sso({ mode: 'signup', claims: googleClaims(email) });
+    expect(target.origin + target.pathname).toBe('https://accounts.google.com/o/oauth2/v2/auth');
+    expect(target.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(target.searchParams.get('redirect_uri')).toBe('https://vanishnote.test/api/auth/sso/google/callback');
+    expect(tokenRequest!.get('code_verifier')).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(location).toBe('/app');
+    expect((await api('GET', '/api/account/records', { cookie: session! })).status).toBe(200);
+    const row = (await env.DB.prepare('SELECT name, has_password, email_verified_at, terms_version FROM users WHERE email = ?1').bind(email).first<Record<string, unknown>>())!;
+    expect(row).toMatchObject({ name: 'Gail Google', has_password: 0, terms_version: LEGAL_UPDATED });
+    expect(row['email_verified_at']).not.toBeNull();
+  });
+
+  it('log-in mode never creates an account; the next path must be on this site', async () => {
+    const { location } = await sso({ claims: googleClaims(`nobody-${Date.now()}@gmail.com`) });
+    expect(location).toBe('/login?sso_error=no_account');
+
+    const email = `gail2-${Date.now()}@gmail.com`;
+    await sso({ mode: 'signup', claims: googleClaims(email) });
+    expect((await sso({ claims: googleClaims(email), query: '&next=%2F%2Fevil.example' })).location).toBe('/app');
+    expect((await sso({ claims: googleClaims(email), query: '&next=%2Fapp%2Fteam' })).location).toBe('/app/team');
+  });
+
+  it('matches an existing account only by a verified email', async () => {
+    const user = await newUser('Pat Password');
+    // Unverified Google email: refused.
+    expect((await sso({ claims: googleClaims(user.email, { email_verified: false }) })).location).toBe('/login?sso_error=unverified');
+    // Microsoft work account without xms_edov: the tenant admin chose that email, so it proves nothing.
+    const work = { iss: 'https://login.microsoftonline.com/tenant-1/v2.0', tid: 'tenant-1', oid: 'o-1', email: user.email, name: 'Pat' };
+    expect((await sso({ provider: 'microsoft', claims: work })).location).toBe('/login?sso_error=unverified');
+    // Verified: linked and signed in; the password keeps working.
+    const ok = await sso({ provider: 'microsoft', claims: { ...work, xms_edov: true } });
+    expect(ok.location).toBe('/app');
+    expect((await api('POST', '/api/auth/login', { json: { email: user.email, authKey: user.authKey } })).status).toBe(200);
+    const ids = await env.DB.prepare('SELECT provider, subject FROM user_identities WHERE email = ?1').bind(user.email).all();
+    expect(ids.results).toEqual([{ provider: 'microsoft', subject: 'tenant-1:o-1' }]);
+  });
+
+  it('a pre-registered, unconfirmed account loses its password when the real owner signs in', async () => {
+    const email = `victim-${Date.now()}@gmail.com`;
+    const attackerKey = await deriveAuthKey(email, 'attacker chose this');
+    await api('POST', '/api/auth/signup', { json: { name: 'Mallory', email, authKey: attackerKey, acceptTerms: true } });
+    const { location } = await sso({ claims: googleClaims(email) });
+    expect(location).toBe('/app');
+    const login = await api('POST', '/api/auth/login', { json: { email, authKey: attackerKey } });
+    expect(login.status).toBe(401);
+  });
+
+  it('rejects a callback from another browser, a replayed state, and forged tokens', async () => {
+    const email = `gail3-${Date.now()}@gmail.com`;
+    await sso({ mode: 'signup', claims: googleClaims(email) });
+    // No state cookie (login CSRF): refused.
+    expect((await sso({ claims: googleClaims(email), tamper: () => ({ stateCookie: '' }) })).location).toBe('/login?sso_error=expired');
+    // Wrong nonce, wrong audience, wrong issuer, expired token.
+    expect((await sso({ claims: googleClaims(email), tamper: () => ({ nonce: 'other' }) })).location).toBe('/login?sso_error=failed');
+    expect((await sso({ claims: googleClaims(email, { aud: 'someone-else' }) })).location).toBe('/login?sso_error=failed');
+    expect((await sso({ claims: googleClaims(email, { iss: 'https://evil.example' }) })).location).toBe('/login?sso_error=failed');
+    expect((await sso({ claims: googleClaims(email, { exp: Math.floor(clock / 1000) - 3600 }) })).location).toBe('/login?sso_error=failed');
+
+    // A state can be used once.
+    const start = await api('GET', '/api/auth/sso/google/start?mode=login');
+    const state = new URL(start.headers.get('Location')!).searchParams.get('state')!;
+    const nonce = new URL(start.headers.get('Location')!).searchParams.get('nonce')!;
+    const stateCookie = start.headers.getSetCookie()[0]!.split(';')[0]!;
+    ssoDeps.fetch = async () => Response.json({ id_token: jwt({ ...googleClaims(email), aud: 'google-client', exp: Math.floor(clock / 1000) + 300, nonce }) });
+    const first = await api('GET', `/api/auth/sso/google/callback?code=c&state=${state}`, { cookie: stateCookie });
+    expect(first.headers.get('Location')).toBe('/app');
+    const replay = await api('GET', `/api/auth/sso/google/callback?code=c&state=${state}`, { cookie: stateCookie });
+    expect(replay.headers.get('Location')).toBe('/login?sso_error=expired');
+  });
+
+  it('connects a provider from Settings, never to two accounts, and keeps a way to sign in', async () => {
+    const a = await newUser('Ann');
+    const b = await newUser('Ben');
+    const personal = { iss: `https://login.microsoftonline.com/${MS_CONSUMER}/v2.0`, tid: MS_CONSUMER, oid: `ms-${Date.now()}`, email: 'ann@outlook.com' };
+    expect((await sso({ provider: 'microsoft', mode: 'link', cookie: a.cookie, claims: personal })).location).toBe('/app/settings?sso=linked#sign-in-methods');
+    expect((await sso({ provider: 'microsoft', mode: 'link', cookie: b.cookie, claims: personal })).location).toBe('/app/settings?sso_error=linked_elsewhere');
+    // Ann has a password too, so she may disconnect Microsoft.
+    expect((await api('DELETE', '/api/account/sso/microsoft', { cookie: a.cookie })).status).toBe(204);
+
+    const email = `solo-${Date.now()}@gmail.com`;
+    const { session } = await sso({ mode: 'signup', claims: googleClaims(email) });
+    const last = await api('DELETE', '/api/account/sso/google', { cookie: session! });
+    expect(last.status).toBe(409);
+  });
+
+  it('Business can require Google/Microsoft for members; the owner keeps password access', async () => {
+    const owner = await newUser('Olive');
+    const memberEmail = `member-${Date.now()}@gmail.com`;
+    const memberKey = await deriveAuthKey(memberEmail, 'member password 1');
+    await api('POST', '/api/auth/signup', { json: { name: 'Max', email: memberEmail, authKey: memberKey, acceptTerms: true } });
+    const verifyToken = linkIn((await outbox(memberEmail)).at(-1)!.text, '/verify#').split('#')[1];
+    const memberCookie = (await api('POST', '/api/auth/verify', { json: { token: verifyToken } })).headers.get('Set-Cookie')!.split(';')[0]!;
+    await env.DB.prepare("UPDATE teams SET plan = 'business' WHERE id = ?1").bind(await teamOf(owner.email)).run();
+    await api('POST', '/api/account/team/invite', { json: { email: memberEmail }, cookie: owner.cookie });
+    const join = linkIn((await outbox(memberEmail)).at(-1)!.text, '/join#').split('#')[1];
+    expect((await api('POST', '/api/account/team/join', { json: { token: join }, cookie: memberCookie })).status).toBe(204);
+
+    const policy = { requirePassword: false, maxExpiry: null, requireSso: true };
+    expect((await api('POST', '/api/account/team/policy', { json: policy, cookie: owner.cookie })).status).toBe(200);
+
+    const blocked = await api('POST', '/api/auth/login', { json: { email: memberEmail, authKey: memberKey } });
+    expect(blocked.status).toBe(403);
+    expect(((await blocked.json()) as { error: string }).error).toBe('sso_required');
+    expect((await api('POST', '/api/auth/login', { json: { email: owner.email, authKey: owner.authKey } })).status).toBe(200);
+
+    // A reset link can't be used to get back in with a password either.
+    await api('POST', '/api/auth/forgot', { json: { email: memberEmail } });
+    const reset = linkIn((await outbox(memberEmail)).at(-1)!.text, '/reset#').split('#')[1];
+    expect((await api('POST', '/api/auth/reset', { json: { token: reset, email: memberEmail, authKey: memberKey } })).status).toBe(403);
+
+    const viaGoogle = await sso({ claims: googleClaims(memberEmail) });
+    expect(viaGoogle.location).toBe('/app');
   });
 });
