@@ -1,34 +1,25 @@
 ---
 /**
- * Vanishnote mark: a folded note whose corner dissolves into drifting fragments.
+ * Vanishnote mark: a V whose right stroke breaks into drifting fragments.
  * Decorative by default; the wordmark text sits beside it as real text.
+ * Source: src/assets/logo-mark.svg (also copied to public/favicon.svg by scripts/generate-og.mjs).
  */
+import mark from '../assets/logo-mark.svg?raw';
+
 interface Props {
   size?: number;
   class?: string;
 }
 const { size = 28, class: className } = Astro.props;
+// Gradient and clip ids must be unique if the mark appears more than once on a page.
+const uid = Math.random().toString(36).slice(2, 8);
+const svg = mark
+  .trim()
+  .replace(/vn-([abc])/g, `vn-$1-${uid}`)
+  .replace(
+    '<svg ',
+    `<svg width="${size}" height="${size}" aria-hidden="true" focusable="false"${className ? ` class="${className}"` : ''} `,
+  );
 ---
 
-<svg
-  class={className}
-  width={size}
-  height={size}
-  viewBox="0 0 32 32"
-  fill="none"
-  aria-hidden="true"
-  focusable="false"
->
-  <path
-    d="M7 4h13l5 5v7.5M7 4a3 3 0 0 0-3 3v18a3 3 0 0 0 3 3h9.5"
-    stroke="currentColor"
-    stroke-width="2.4"
-    stroke-linecap="round"
-    stroke-linejoin="round"></path>
-  <path d="M20 4v4a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"></path>
-  <path d="M9.5 12.5h9M9.5 17h6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.55"></path>
-  <rect x="20" y="20" width="4" height="4" rx="1" fill="currentColor" opacity="0.9"></rect>
-  <rect x="25.5" y="24.5" width="3" height="3" rx="0.8" fill="currentColor" opacity="0.6"></rect>
-  <rect x="21.5" y="27" width="2.4" height="2.4" rx="0.7" fill="currentColor" opacity="0.4"></rect>
-  <rect x="28" y="19" width="2" height="2" rx="0.6" fill="currentColor" opacity="0.3"></rect>
-</svg>
+<Fragment set:html={svg} />

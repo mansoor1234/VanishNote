@@ -5,23 +5,25 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
-const mark = readFileSync(new URL('../public/favicon.svg', import.meta.url), 'utf8')
-  .replace(/<style>.*?<\/style>/, '')
-  .replace('<svg ', '<svg width="132" height="132" ');
+// The logo mark's single source. The browser-tab icon is the mark itself.
+const markSource = readFileSync(new URL('../src/assets/logo-mark.svg', import.meta.url), 'utf8').trim();
+writeFileSync(fileURLToPath(new URL('../public/favicon.svg', import.meta.url)), `${markSource}\n`);
+console.log('wrote public/favicon.svg');
+const markAt = (size) => markSource.replace('<svg ', `<svg width="${size}" height="${size}" `);
+const mark = markAt(132);
 
 const page = (headline, sub) => `<!doctype html><html><head><style>
   body { margin:0; width:1200px; height:630px; display:flex; flex-direction:column; justify-content:center;
     padding:0 96px; box-sizing:border-box; background:#f6f5f1; color:#1b1d2a;
     font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
-  .brand { display:flex; align-items:center; gap:28px; color:#4338ca; }
-  .word { font-size:76px; font-weight:800; letter-spacing:-2px; color:#1b1d2a; }
-  .word span { color:#545869; }
+  .brand { display:flex; align-items:center; gap:28px; }
+  .word { font-size:76px; font-weight:800; letter-spacing:-2px; color:#0b1020; }
   h1 { font-size:56px; line-height:1.12; margin:56px 0 20px; letter-spacing:-1.5px; max-width:1010px; }
   p { font-size:30px; color:#545869; margin:0; }
   .bits { position:absolute; right:84px; bottom:72px; display:flex; gap:14px; align-items:flex-end; }
-  .bits i { display:block; background:#4338ca; border-radius:6px; }
+  .bits i { display:block; background:#4f5cf3; border-radius:6px; }
 </style></head><body>
-  <div class="brand">${mark}<div class="word">vanish<span>note</span></div></div>
+  <div class="brand">${mark}<div class="word">Vanishnote</div></div>
   <h1>${headline}</h1>
   <p>${sub}</p>
   <div class="bits"><i style="width:34px;height:34px;opacity:.85"></i><i style="width:24px;height:24px;opacity:.55"></i><i style="width:16px;height:16px;opacity:.35"></i></div>
@@ -39,29 +41,36 @@ for (const [file, html] of Object.entries(cards)) {
   await tab.screenshot({ path: fileURLToPath(new URL(`../public/${file}`, import.meta.url)) });
   console.log(`wrote public/${file}`);
 }
-// Square app icons: white mark on the brand indigo, legible on light and dark backgrounds.
-// icon-192: push notifications. favicon-48/96 and favicon.ico: browsers and Google Search, which
-// wants a square PNG in multiples of 48px. apple-touch-icon: iOS home screen.
-async function renderIcon(size) {
+// App icon: the mark on a deep navy-to-violet tile, legible on light and dark backgrounds.
+// favicon-48/96 and favicon.ico (browsers and Google Search, which wants a square PNG in
+// multiples of 48px) have rounded corners; apple-touch-icon and icon-192 (push) are full-bleed
+// because iOS and notification UIs apply their own mask.
+async function renderIcon(size, { rounded }) {
   const tab = await browser.newPage({ viewport: { width: size, height: size } });
-  const markSize = Math.round(size * (128 / 192));
+  const radius = rounded ? Math.round(size * 0.22) : 0;
   await tab.setContent(
-    `<body style="margin:0;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:#4338ca">${mark
-      .replace('width="132" height="132"', `width="${markSize}" height="${markSize}"`)
-      .replace(/currentColor/g, '#ffffff')}</body>`,
+    `<body style="margin:0;width:${size}px;height:${size}px;background:transparent">
+      <div style="width:${size}px;height:${size}px;border-radius:${radius}px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#071a5e,#2a0c8f)">
+        ${markAt(Math.round(size * 0.7))}
+      </div></body>`,
   );
-  const png = await tab.screenshot();
+  const png = await tab.screenshot({ omitBackground: true });
   await tab.close();
   return png;
 }
 
-for (const [file, size] of [['icon-192.png', 192], ['favicon-48.png', 48], ['favicon-96.png', 96], ['apple-touch-icon.png', 180]]) {
-  writeFileSync(fileURLToPath(new URL(`../public/${file}`, import.meta.url)), await renderIcon(size));
+for (const [file, size, rounded] of [
+  ['icon-192.png', 192, false],
+  ['apple-touch-icon.png', 180, false],
+  ['favicon-48.png', 48, true],
+  ['favicon-96.png', 96, true],
+]) {
+  writeFileSync(fileURLToPath(new URL(`../public/${file}`, import.meta.url)), await renderIcon(size, { rounded }));
   console.log(`wrote public/${file}`);
 }
 
 // favicon.ico holding PNG images (valid since Windows Vista; every current browser reads it).
-const icoImages = [[32, await renderIcon(32)], [48, await renderIcon(48)]];
+const icoImages = [[32, await renderIcon(32, { rounded: true })], [48, await renderIcon(48, { rounded: true })]];
 const header = Buffer.alloc(6 + 16 * icoImages.length);
 header.writeUInt16LE(0, 0); // reserved
 header.writeUInt16LE(1, 2); // type: icon
