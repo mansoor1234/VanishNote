@@ -81,7 +81,10 @@ async function main(): Promise<void> {
     account.hidden = false;
     quick.hidden = true;
     if (rules.requirePassword) {
-      $('[data-password-label]').textContent = 'Password (required by your team)';
+      // Short label so the two boxes stay level; the reason goes in the hint under them.
+      $('[data-password-label]').textContent = '(required)';
+      $('[data-password-policy]').hidden = false;
+      password.setAttribute('aria-describedby', 'password-policy');
       password.required = true;
     }
     const views = $<Select>('#reads');

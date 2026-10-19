@@ -42,13 +42,23 @@ const defaultTimed = timed.find((t) => t.key === '1d' && t.allowed) ? '1d' : tim
             <p id="cn-title-hint" class="field-hint">Shown in your dashboard and emails. Keep secrets out of it.</p>
           </div>
 
-          <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+          <!-- items-end keeps both boxes level even if a label wraps. -->
+          <div class="grid items-end gap-3 sm:grid-cols-2">
             <div>
               <label for="cn-password" class="field-label">
-                Password <span class="font-normal text-muted">{policy.requirePassword ? '(required by your team)' : '(optional)'}</span>
+                Password <span class="font-normal text-muted">{policy.requirePassword ? '(required)' : '(optional)'}</span>
               </label>
               <div class="flex gap-2">
-                <input id="cn-password" name="password" type="password" class="input" autocomplete="new-password" required={policy.requirePassword} />
+                <input
+                  id="cn-password"
+                  name="password"
+                  type="password"
+                  class="input"
+                  autocomplete="new-password"
+                  required={policy.requirePassword}
+                  aria-describedby={policy.requirePassword ? 'cn-password-policy' : undefined}
+                />
                 <button type="button" class="btn-secondary shrink-0 px-3" data-generate-password="cn-password" aria-label="Generate a strong password" title="Generate a strong password">⚄</button>
               </div>
             </div>
@@ -59,6 +69,10 @@ const defaultTimed = timed.find((t) => t.key === '1d' && t.allowed) ? '1d' : tim
                 <button type="button" class="btn-secondary shrink-0 px-3" data-toggle-password-pair="cn-password cn-confirm" aria-pressed="false">Show</button>
               </div>
             </div>
+          </div>
+          {policy.requirePassword && (
+            <p id="cn-password-policy" class="field-hint">Your team requires a password on every note. Send it to the recipient a different way.</p>
+          )}
           </div>
 
           <div>

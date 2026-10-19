@@ -104,6 +104,8 @@ a:focus-visible {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  /* Keep the boxes level even if one label wraps. */
+  align-items: end;
 }
 .row[hidden],
 [hidden] {

@@ -224,7 +224,8 @@ test('team admin: a policy set by the owner shapes the note form, and lands in t
   await page.goto('/app');
   await page.getByRole('button', { name: 'Create note' }).first().click();
   const dialog = page.getByRole('dialog', { name: 'New note' });
-  await expect(dialog.getByText('(required by your team)')).toBeVisible();
+  await expect(dialog.getByText('Password (required)')).toBeVisible();
+  await expect(dialog.getByText('Your team requires a password on every note.')).toBeVisible();
   await expect(dialog.getByText('Unread notes are deleted after 1 day (your team’s policy).')).toBeVisible();
   await dialog.getByLabel('Title').fill('No password');
   await dialog.getByLabel('Note contents').fill('secret');
