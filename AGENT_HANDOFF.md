@@ -296,6 +296,24 @@ scripts/           generate-og.mjs (social images and push icon), generate-vapid
   - Browser extension (`extension/`, `npm run build:extension`): not yet published to the
     Chrome/Edge/Firefox stores (needs the user's developer accounts).
   - Migrations 0004 and 0005 must be applied remotely **before** deploying code that uses them.
+- **Proposed, not approved: extension "paste protection"** (discussed 2026-10-19; confirm scope
+  with the user before building, estimate 3–4 days).
+  - What: a content script watches message boxes on chat/email sites (Gmail, Outlook, Slack,
+    Teams, WhatsApp Web, Discord, Jira, GitHub). When the user types or pastes something that
+    looks like a secret, a small Vanishnote icon offers "Send it as a self-destructing link
+    instead?"; one click encrypts it and replaces the secret in the message with the link
+    (clipboard fallback where rich editors such as Gmail/Slack/Teams resist replacement).
+    Possible later: an icon next to password fields.
+  - Detect on-device only: AWS/GitHub/Stripe/OpenAI-style keys, private key blocks, JWTs, `.env`
+    lines (`DB_PASSWORD=…`), "password: …" text, optionally Luhn-checked card numbers. Keep false
+    positives rare; dismiss per message and disable per site.
+  - Trust rules: **off by default**; request `optional_host_permissions` for the listed sites when
+    the user turns it on (never "all sites" by default: it shows as "read and change all your
+    data", undermines a privacy product and slows store review). Nothing leaves the device unless
+    the user clicks. Update `src/pages/privacy.astro` ("Browser extension": it currently says the
+    extension can't read pages), `SECURITY.md` and the store listings.
+  - Alternatives the user may still choose: highlight secrets already visible on a page, or run
+    on all sites by default.
 - **Not verified end to end against real services:** Resend delivery, Turnstile with real keys,
   Web Push delivery to a real device, and R2/cron in production. (Inbound mail to `hello@` and
   `security@` is verified.)
