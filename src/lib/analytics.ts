@@ -7,7 +7,7 @@
  */
 export const GA_MEASUREMENT_ID = 'G-EZDT80VC6P';
 
-export const ANALYTICS_PATHS = ['/pricing', '/faq', '/how-it-works', '/security', '/privacy', '/terms', '/blog', '/blog/*'] as const;
+export const ANALYTICS_PATHS = ['/pricing', '/extension', '/faq', '/how-it-works', '/security', '/privacy', '/terms', '/blog', '/blog/*'] as const;
 
 /** `pathname` without a trailing ".html" (see cleanPath). */
 export function isAnalyticsPath(pathname: string): boolean {

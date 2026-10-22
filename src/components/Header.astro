@@ -36,6 +36,19 @@ const current = cleanPath(Astro.url.pathname);
             </li>
           ))
         }
+        <li class="hidden lg:list-item">
+          <a
+            href="/extension"
+            class="btn-secondary gap-2 px-3 py-1.5 text-sm"
+            aria-current={current === '/extension' ? 'page' : undefined}
+            data-extension-cta
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path>
+            </svg>
+            <span data-label>Get the extension</span>
+          </a>
+        </li>
         <li>
           <a href="/login" class="inline-flex min-h-11 items-center rounded px-1 text-muted hover:text-accent">Log in</a>
         </li>
@@ -46,3 +59,8 @@ const current = cleanPath(Astro.url.pathname);
     </nav>
   </div>
 </header>
+
+<script>
+  import { initExtensionCta } from '../scripts/extension-cta';
+  initExtensionCta();
+</script>

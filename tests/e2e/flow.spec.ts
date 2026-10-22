@@ -185,7 +185,7 @@ test('the creator can destroy a note early with the destroy link', async ({ page
 
 test('marketing pages are indexable; note pages are not', async ({ page, request }) => {
   const errors = trackConsoleErrors(page);
-  for (const path of ['/', '/how-it-works', '/security', '/faq', '/privacy', '/terms', '/blog']) {
+  for (const path of ['/', '/how-it-works', '/extension', '/security', '/faq', '/privacy', '/terms', '/blog']) {
     await page.goto(path);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow');
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`${path === '/' ? '/' : path}$`));
@@ -198,6 +198,19 @@ test('marketing pages are indexable; note pages are not', async ({ page, request
   const sitemap = await (await request.get('/sitemap-0.xml')).text();
   expect(sitemap).toContain('/faq');
   expect(sitemap).not.toMatch(/\/(n|d)\//);
+  expect(errors).toEqual([]);
+});
+
+test('header: "Add to Chrome" leads to the extension page (until the store listing exists)', async ({ page }) => {
+  const errors = trackConsoleErrors(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/pricing');
+  const cta = page.getByRole('banner').getByRole('link', { name: 'Add to Chrome' });
+  await expect(cta).toBeVisible();
+  await cta.click();
+  await expect(page).toHaveURL(/\/extension$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Send a secret from any page in two clicks.');
+  await expect(page.getByText('Chrome: coming soon')).toHaveAttribute('data-current', '');
   expect(errors).toEqual([]);
 });
 

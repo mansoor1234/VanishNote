@@ -137,7 +137,12 @@ node scripts/build-extension.mjs --server http://localhost:8787   # for local te
   and `vanishnote-firefox-<version>.zip` to [addons.mozilla.org](https://addons.mozilla.org/developers/)
   (free). Store listings ask for a privacy policy URL: use `https://vanishnote.net/privacy`.
 - **New version:** bump `extension/version.json`, rebuild, upload. Icons come from
-  `node scripts/generate-og.mjs`.
+  `node scripts/generate-og.mjs`; the popup screenshots on `/extension` from
+  `node scripts/screenshot-extension.mjs` (after a production build).
+- **After publishing:** paste each listing URL into `EXTENSION_STORES` in
+  `src/lib/extension-store.ts` and deploy. The header's "Add to Chrome / Edge / Firefox" button
+  then opens that store directly (sites can't install extensions themselves); until then it
+  links to `/extension`, which shows "coming soon".
 
 ## Single sign-on (Google and Microsoft)
 
