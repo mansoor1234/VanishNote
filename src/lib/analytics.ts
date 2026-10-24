@@ -1,13 +1,26 @@
 /**
  * Google Analytics runs only on these information pages, and only after the visitor accepts.
  * Never on pages that handle note content, keys or passwords (home, /n, /r, /d, the dashboard,
- * login and sign-up): a third-party script there could read the link fragment or the text.
+ * login and sign-up, the landing pages with a note form, the password generator): a third-party
+ * script there could read the link fragment, the text or the password.
  *
  * public/_headers gives exactly these paths ANALYTICS_CSP (tests/unit/headers.test.ts checks).
  */
 export const GA_MEASUREMENT_ID = 'G-EZDT80VC6P';
 
-export const ANALYTICS_PATHS = ['/pricing', '/extension', '/faq', '/how-it-works', '/security', '/privacy', '/terms', '/blog', '/blog/*'] as const;
+export const ANALYTICS_PATHS = [
+  '/pricing',
+  '/extension',
+  '/faq',
+  '/how-it-works',
+  '/security',
+  '/privacy',
+  '/terms',
+  '/privnote-alternative',
+  '/onetimesecret-alternative',
+  '/blog',
+  '/blog/*',
+] as const;
 
 /** `pathname` without a trailing ".html" (see cleanPath). */
 export function isAnalyticsPath(pathname: string): boolean {

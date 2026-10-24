@@ -1,0 +1,92 @@
+---
+import ComparisonTable from '../components/ComparisonTable.astro';
+import FaqList from '../components/FaqList.astro';
+import RelatedGuides from '../components/RelatedGuides.astro';
+import Prose from '../layouts/Prose.astro';
+import { faqJsonLd, type Faq } from '../lib/schema';
+import { CONTACT_EMAIL } from '../lib/site';
+
+/**
+ * Date of this comparison. Re-check every claim about Privnote against privnote.com before
+ * changing it, and at least every few months.
+ */
+const AS_OF = 'October 2026';
+
+const rows = [
+  { feature: 'Encrypted in your browser, key in the link', ours: 'Yes (AES-256-GCM)', theirs: 'Yes' },
+  { feature: 'Free, no account needed', ours: 'Yes', theirs: 'Yes' },
+  { feature: 'Destroyed after reading', ours: 'Yes', theirs: 'Yes' },
+  { feature: 'Allow more than one view', ours: 'Up to 10 views', theirs: 'No, one read' },
+  { feature: 'Expiry if unread', ours: '1 hour to 7 days (up to 12 months with an account)', theirs: '1 hour to 30 days' },
+  { feature: 'Optional password', ours: 'Yes, combined with the link key', theirs: 'Yes' },
+  { feature: 'Email when read', ours: 'Yes', theirs: 'Yes' },
+  { feature: 'Safe from chat link previews', ours: 'Yes, opens only when Reveal is pressed', theirs: 'Yes, asks before showing the note' },
+  { feature: 'Accounts for teams', ours: 'Yes, on paid plans: shared notes, policies, audit log', theirs: 'No' },
+];
+
+const faqs: Faq[] = [
+  {
+    q: 'Is Vanishnote a good Privnote alternative?',
+    a: 'If you want what Privnote does, a note that opens once with no sign-up, Vanishnote does the same for free. It also offers up to 10 views, a destroy link, encrypted attachments and a dashboard for teams.',
+  },
+  {
+    q: 'Is Vanishnote related to Privnote?',
+    a: 'No. Vanishnote is a separate, independent service.',
+  },
+  {
+    q: 'Can Vanishnote read my notes?',
+    a: 'No. Notes are encrypted in your browser and the key stays in the part of the link after the #, which browsers never send to us.',
+  },
+];
+---
+
+<Prose
+  title="Privnote alternative: Vanishnote vs Privnote"
+  description="Looking for a Privnote alternative? An honest comparison of Vanishnote and Privnote: encryption, views, expiry, passwords, files and teams."
+  heading="Vanishnote vs Privnote"
+  lead="Both send notes that self-destruct after reading, and both are free without an account. Here’s where they differ, so you can pick the one that fits."
+  jsonLd={faqJsonLd(faqs)}
+>
+  <h2>At a glance</h2>
+  <ComparisonTable other="Privnote" rows={rows} />
+  <p class="text-sm text-muted">
+    Comparison as of {AS_OF}, from Privnote’s public information. Spotted something out of date? Email{' '}
+    <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we’ll correct it.
+  </p>
+
+  <h2>What they have in common</h2>
+  <p>
+    The basic idea is the same: you write a note, get a link, and the note is deleted when it’s read. Both encrypt the note
+    in the browser and put the key in the link, so the service stores text it can’t read. Neither needs an account to send
+    or to read.
+  </p>
+
+  <h2>What else Vanishnote offers</h2>
+  <ul>
+    <li>
+      <strong>A published security model.</strong> Our <a href="/security">security page</a> sets out the exact
+      algorithms (AES-256-GCM, PBKDF2 with 600,000 iterations, HKDF), what our servers see, and what we can’t protect
+      against.
+    </li>
+    <li><strong>More control:</strong> up to 10 views, a destroy link to cancel a note, and longer expiry with an account.</li>
+    <li><strong>Files and requests:</strong> encrypted attachments, and links that let someone send a secret to you.</li>
+    <li>
+      <strong>Teams:</strong> a dashboard with activity history, shared notes, policies, audit log and your own branding.
+      See <a href="/pricing">pricing</a>.
+    </li>
+    <li><strong>A browser extension</strong> to send selected text from any page. See <a href="/extension">the extension</a>.</li>
+  </ul>
+
+  <h2>Where Privnote may suit you better</h2>
+  <p>
+    Privnote has been around for many years, and plenty of people already know the name. If someone you’re sending to
+    expects a Privnote link, and you only need a single one-off note, it does that job.
+  </p>
+
+  <h2>Try it</h2>
+  <p>Write a note on the <a href="/">home page</a>. It takes a few seconds and needs no sign-up.</p>
+
+  <h2>Questions</h2>
+  <FaqList faqs={faqs} />
+  <RelatedGuides />
+</Prose>

@@ -396,9 +396,12 @@ export async function openRequestFileMeta(key: CryptoKey, meta: string, metaIv: 
   }
 }
 
-/** A strong random password for the generator button: 20 chars from an unambiguous alphabet. */
-export function generatePassword(length = 20): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789-_!@#%';
+/** Letters and digits without look-alikes (I O l o 0 1), plus symbols most sites accept. */
+export const DEFAULT_PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789-_!@#%';
+
+/** A strong random password: by default 20 chars from an unambiguous alphabet. */
+export function generatePassword(length = 20, alphabet = DEFAULT_PASSWORD_ALPHABET): string {
+  if (alphabet.length < 2 || alphabet.length > 256) throw new RangeError('The alphabet needs 2 to 256 characters');
   const out: string[] = [];
   // Rejection sampling to avoid modulo bias.
   const limit = 256 - (256 % alphabet.length);

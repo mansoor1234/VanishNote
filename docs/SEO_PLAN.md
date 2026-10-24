@@ -70,6 +70,19 @@ Search Console → Performance: find phrases on page 2 (positions 11–20) and i
 4. More blog posts, to the list above.
 5. Later: Urdu and other languages.
 
-Recommended first: 1–3 (about a day). **Status: proposed, awaiting the owner's go-ahead.**
-These are static, indexable pages: add them to the sitemap (not `PRIVATE_PATH`), keep the strict
-CSP, and no third-party scripts on the password generator page (it handles passwords).
+**Status (2026-10-24): 1–3 built** on branch `claude/landing-pages-password-gen-elge8w`:
+
+| Page | Analytics |
+|---|---|
+| `/send-password-securely`, `/one-time-secret-link`, `/share-api-keys` (note form on the page) | never |
+| `/password-generator` (note form, password made with `generateFromOptions` in `src/lib/password.ts`) | never |
+| `/privnote-alternative`, `/onetimesecret-alternative` (no form) | opt-in, like other info pages |
+
+All are in the sitemap, linked from the footer and from each other (`src/lib/guides.ts`). Add new
+SEO pages to `GUIDES` so they join the cross-links.
+
+**Before deploying the comparison pages,** the owner checks every row about Privnote and One-Time
+Secret against their current sites (the agent couldn't reach them). Re-check every few months and
+update `AS_OF` in each page.
+
+Next: 4 (blog posts), then 5.
