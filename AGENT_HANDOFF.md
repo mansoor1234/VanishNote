@@ -408,6 +408,9 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
     and can't access"), `SECURITY.md` and the store listings.
   - Alternatives the user may still choose: highlight secrets already visible on a page, or run
     on all sites by default.
+- **SEO plan** (agreed 2026-10-24): see `docs/SEO_PLAN.md`. Owner tasks (Search Console, Bing,
+  launches, directories) and build work (landing pages, comparison pages, password generator,
+  blog posts) awaiting go-ahead.
 - **Ideas offered earlier, not requested:** plan badge / upgrade hint in the extension,
   attachments or requests from the extension, file-only secure links, QR code for links,
   password-generator page, note templates, more languages, CLI/SDK, webhooks.
