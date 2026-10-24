@@ -143,14 +143,17 @@ src/server/     Worker-side, framework-agnostic handlers (tests call them direct
   http.ts         JSON helpers, CSP variants and security headers, body readers (JSON and multipart)
   turnstile.ts / deps.ts   Turnstile verify; real bindings for Astro routes
 src/pages/      Astro routes. Static: / pricing extension how-it-works security faq privacy terms blog 404
+                SEO pages (lib/guides.ts): send-password-securely one-time-secret-link share-api-keys
+                password-generator privnote-alternative onetimesecret-alternative
                 On demand: n/[id] d/[id] r/[id] app/* (index team admin settings subscription contact)
                 login signup verify forgot reset join; api/[...path].ts (→ router), api/notes/*,
                 brand/[brandId]/logo.ts, robots.txt.ts
 src/scripts/    Browser code (create, reveal, respond, auth, cipher-preview, analytics, extension-cta, app/*)
 src/components/ Header (Add-to-browser button), Footer, Logo, CreateNote, PricingTable, SsoButtons,
-                AnalyticsConsent, ZeroKnowledgeBadge, LinkAnatomy, WhoSeesWhat, app/* dialogs, SettingsCard
+                AnalyticsConsent, ZeroKnowledgeBadge, LinkAnatomy, WhoSeesWhat, app/* dialogs, SettingsCard,
+                FaqList, RelatedGuides, ComparisonTable
 src/assets/logo-mark.svg   the logo mark: single source for header, favicons, icons, social cards
-src/layouts/    Base (site chrome or none), App (dashboard shell), Auth, Prose
+src/layouts/    Base (site chrome or none), App (dashboard shell), Auth, Prose, Landing (SEO page + note form)
 src/middleware.ts  /app session guard; security headers for on-demand responses
 public/_headers    security headers for static pages (+ analytics CSP blocks); unit-tested against http.ts
 public/            favicon.svg/.ico/-48/-96, apple-touch-icon, icon-192, og images, extension-popup-*.png, sw.js
@@ -408,9 +411,15 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
     and can't access"), `SECURITY.md` and the store listings.
   - Alternatives the user may still choose: highlight secrets already visible on a page, or run
     on all sites by default.
+- **SEO plan** (agreed 2026-10-24): see `docs/SEO_PLAN.md`. Build items 1–3 done (landing pages,
+  comparison pages, password generator); blog posts and languages next. Owner tasks (Search
+  Console, Bing, launches, directories) are theirs. Landing pages and the generator hold a note
+  form or a password, so they are NOT in `ANALYTICS_PATHS`; the two comparison pages are.
+  The comparison tables were written without access to the competitors' sites (blocked from the
+  agent sandbox); the owner checked every row on 2026-10-24. Re-check every few months.
 - **Ideas offered earlier, not requested:** plan badge / upgrade hint in the extension,
   attachments or requests from the extension, file-only secure links, QR code for links,
-  password-generator page, note templates, more languages, CLI/SDK, webhooks.
+  note templates, more languages, CLI/SDK, webhooks.
 - **NoteShred API parity gaps (offered, not done):**
   1. a "shred" endpoint that destroys the content but keeps the record (status `destroyed`);
   2. an optional `message` on `/api/account/notes/:id/send`.

@@ -1,0 +1,25 @@
+---
+import type { Faq } from '../lib/schema';
+
+/** Questions and answers as expandable rows. Pair it with faqJsonLd() so search engines see the same text. */
+interface Props {
+  faqs: Faq[];
+}
+const { faqs } = Astro.props;
+---
+
+<div class="space-y-3">
+  {
+    faqs.map(({ q, a }) => (
+      <details class="group rounded-xl border border-line bg-surface p-4 open:shadow-sm">
+        <summary class="cursor-pointer list-none font-semibold marker:hidden">
+          <span class="flex items-start justify-between gap-4">
+            {q}
+            <span aria-hidden="true" class="text-muted transition-transform group-open:rotate-45">+</span>
+          </span>
+        </summary>
+        <p class="mt-3 mb-0">{a}</p>
+      </details>
+    ))
+  }
+</div>

@@ -1,0 +1,23 @@
+---
+import { GUIDES } from '../lib/guides';
+import { cleanPath } from '../lib/site';
+
+const current = cleanPath(Astro.url.pathname);
+const guides = GUIDES.filter((g) => g.href !== current);
+---
+
+<nav aria-labelledby="related-title" class="mt-12">
+  <h2 id="related-title" class="text-xl font-bold tracking-tight">Related</h2>
+  <ul class="mt-4 grid gap-4 sm:grid-cols-2">
+    {
+      guides.map((g) => (
+        <li>
+          <a href={g.href} class="block h-full rounded-2xl border border-line p-5 hover:border-accent">
+            <span class="font-semibold text-accent">{g.title}</span>
+            <span class="mt-1 block text-sm text-muted">{g.blurb}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

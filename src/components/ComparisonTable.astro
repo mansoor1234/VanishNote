@@ -1,0 +1,31 @@
+---
+/** Feature table for the comparison pages. Every claim about another product must be checked against its own site. */
+interface Props {
+  other: string;
+  rows: { feature: string; ours: string; theirs: string }[];
+}
+const { other, rows } = Astro.props;
+---
+
+<div class="mb-6 overflow-x-auto rounded-xl border border-line">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-surface-muted">
+      <tr>
+        <th scope="col" class="px-3 py-3 sm:px-4 font-semibold">Feature</th>
+        <th scope="col" class="px-3 py-3 sm:px-4 font-semibold">Vanishnote</th>
+        <th scope="col" class="px-3 py-3 sm:px-4 font-semibold">{other}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr class="border-t border-line align-top">
+            <th scope="row" class="px-3 py-3 sm:px-4 font-medium">{row.feature}</th>
+            <td class="px-3 py-3 sm:px-4">{row.ours}</td>
+            <td class="px-3 py-3 sm:px-4">{row.theirs}</td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
