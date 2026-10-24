@@ -81,8 +81,7 @@ Search Console → Performance: find phrases on page 2 (positions 11–20) and i
 All are in the sitemap, linked from the footer and from each other (`src/lib/guides.ts`). Add new
 SEO pages to `GUIDES` so they join the cross-links.
 
-**Before deploying the comparison pages,** the owner checks every row about Privnote and One-Time
-Secret against their current sites (the agent couldn't reach them). Re-check every few months and
-update `AS_OF` in each page.
+**Comparison rows:** the owner checked every row about Privnote and One-Time Secret on 2026-10-24
+(the agent couldn't reach their sites). Re-check every few months and update `AS_OF` in each page.
 
 Next: 4 (blog posts), then 5.

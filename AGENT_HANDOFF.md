@@ -416,7 +416,7 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
   Console, Bing, launches, directories) are theirs. Landing pages and the generator hold a note
   form or a password, so they are NOT in `ANALYTICS_PATHS`; the two comparison pages are.
   The comparison tables were written without access to the competitors' sites (blocked from the
-  agent sandbox): the owner must check each claim before deploying, and re-check periodically.
+  agent sandbox); the owner checked every row on 2026-10-24. Re-check every few months.
 - **Ideas offered earlier, not requested:** plan badge / upgrade hint in the extension,
   attachments or requests from the extension, file-only secure links, QR code for links,
   note templates, more languages, CLI/SDK, webhooks.
