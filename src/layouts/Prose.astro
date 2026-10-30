@@ -8,12 +8,13 @@ interface Props {
   lead?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   ogType?: 'website' | 'article';
+  breadcrumb?: string;
 }
 
-const { title, description, heading, lead, jsonLd, ogType } = Astro.props;
+const { title, description, heading, lead, jsonLd, ogType, breadcrumb } = Astro.props;
 ---
 
-<Base title={title} description={description} jsonLd={jsonLd} ogType={ogType}>
+<Base title={title} description={description} jsonLd={jsonLd} ogType={ogType} breadcrumb={breadcrumb}>
   <article class="container-page py-10 sm:py-14">
     <div class="prose-page">
       <slot name="before-heading" />

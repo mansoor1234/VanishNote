@@ -1,0 +1,5 @@
+Contact: mailto:security@vanishnote.net
+Expires: 2027-10-30T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://vanishnote.net/.well-known/security.txt
+Policy: https://vanishnote.net/security

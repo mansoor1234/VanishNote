@@ -4,7 +4,8 @@ import AnalyticsConsent from '../components/AnalyticsConsent.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { isAnalyticsPath } from '../lib/analytics';
-import { cleanPath } from '../lib/site';
+import ogManifest from '../lib/og-manifest.json';
+import { cleanPath, CONTACT_EMAIL, SECURITY_EMAIL } from '../lib/site';
 
 interface Props {
   title: string;
@@ -19,21 +20,67 @@ interface Props {
   chrome?: 'site' | 'none';
   /** Overrides the "· Vanishnote" title suffix (branded pages). */
   titleSuffix?: string;
+  /** Last breadcrumb label in search results; defaults to the title. */
+  breadcrumb?: string;
 }
 
 const { title, description, privatePage = false, ogType = 'website', jsonLd, chrome = 'site', titleSuffix } = Astro.props;
 const site = Astro.site ?? new URL('https://vanishnote.net');
-const canonical = new URL(cleanPath(Astro.url.pathname), site).href;
-const ogImagePath = Astro.props.ogImage ?? (privatePage ? undefined : '/og.png');
+const path = cleanPath(Astro.url.pathname);
+const canonical = new URL(path, site).href;
+// A per-page social card (scripts/generate-og.mjs writes og-manifest.json), else the generic one.
+const card = privatePage ? undefined : (ogManifest as Record<string, { image: string; alt: string }>)[path];
+const ogImagePath = Astro.props.ogImage ?? card?.image ?? (privatePage ? undefined : '/og.png');
 const ogImage = ogImagePath ? new URL(ogImagePath, site).href : undefined;
 const ogImageAlt = privatePage
   ? 'A private note that opens once, sent with Vanishnote'
-  : 'Vanishnote — encrypted notes that disappear after reading';
+  : (card?.alt ?? 'Vanishnote — encrypted notes that disappear after reading');
 const suffix = titleSuffix ?? 'Vanishnote';
 const fullTitle = title.includes(suffix) ? title : `${title} · ${suffix}`;
+
+// Structured data every public page gets: who runs the site (home), and where a page sits.
+const origin = site.origin;
+const siteLd: Record<string, unknown>[] = [];
+if (!privatePage && path === '/') {
+  siteLd.push(
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${origin}/#organization`,
+      name: 'Vanishnote',
+      url: `${origin}/`,
+      logo: `${origin}/icon-512.png`,
+      email: CONTACT_EMAIL,
+      contactPoint: [
+        { '@type': 'ContactPoint', contactType: 'customer support', email: CONTACT_EMAIL },
+        { '@type': 'ContactPoint', contactType: 'security', email: SECURITY_EMAIL },
+      ],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      '@id': `${origin}/#website`,
+      name: 'Vanishnote',
+      alternateName: 'Vanishnote: self-destructing notes',
+      url: `${origin}/`,
+      publisher: { '@id': `${origin}/#organization` },
+      inLanguage: 'en',
+    },
+  );
+} else if (!privatePage && Astro.response.status !== 404) {
+  const items = [{ name: 'Vanishnote', item: `${origin}/` }];
+  if (path.startsWith('/blog/')) items.push({ name: 'Blog', item: `${origin}/blog` });
+  items.push({ name: Astro.props.breadcrumb ?? title.replace(/ · Vanishnote$/, ''), item: canonical });
+  siteLd.push({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, ...it })),
+  });
+}
+const allLd = [...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []), ...siteLd];
 // JSON-LD is a data block, not executable script, so it is allowed under script-src 'self'.
 // Escape "<" so content can never close the script element.
-const ldJson = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefined;
+const ldJson = allLd.length ? JSON.stringify(allLd.length === 1 ? allLd[0] : allLd).replace(/</g, '\\u003c') : undefined;
 // Information pages only; never a page that handles notes or passwords (see lib/analytics.ts).
 const analytics = !privatePage && isAnalyticsPath(cleanPath(Astro.url.pathname));
 ---
@@ -53,18 +100,20 @@ const analytics = !privatePage && isAnalyticsPath(cleanPath(Astro.url.pathname))
     <link rel="icon" href="/favicon-96.png" sizes="96x96" type="image/png" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     {
       privatePage ? (
         <meta name="robots" content="noindex, nofollow, noarchive" />
       ) : (
         <>
-          <meta name="robots" content="index, follow" />
+          <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
           <link rel="canonical" href={canonical} />
           <link rel="sitemap" href="/sitemap-index.xml" />
         </>
       )
     }
     <meta property="og:site_name" content="Vanishnote" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />

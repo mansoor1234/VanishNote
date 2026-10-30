@@ -1,17 +1,41 @@
 ---
 import { getCollection } from 'astro:content';
+import RelatedGuides from '../../components/RelatedGuides.astro';
 import Prose from '../../layouts/Prose.astro';
 
 const posts = (await getCollection('blog')).sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf());
 const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'UTC' });
+const site = Astro.site ?? new URL('https://vanishnote.net');
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: 'Vanishnote blog',
+  url: new URL('/blog', site).href,
+  description: 'Practical guides to sharing passwords, keys and other sensitive information safely.',
+  publisher: { '@type': 'Organization', '@id': `${site.origin}/#organization`, name: 'Vanishnote' },
+  blogPost: posts.map((post) => ({
+    '@type': 'BlogPosting',
+    headline: post.data.title,
+    url: new URL(`/blog/${post.id}`, site).href,
+    datePublished: post.data.published.toISOString(),
+  })),
+};
 ---
 
 <Prose
-  title="Blog"
-  description="Practical guides to sharing passwords and sensitive information safely, from the team behind Vanishnote."
+  title="Blog: sharing passwords and secrets safely"
+  description="Practical guides to sharing passwords, API keys and sensitive information without leaving them in inboxes and chats, from the team behind Vanishnote."
   heading="Blog"
   lead="Practical advice on sharing secrets without leaving them lying around."
+  jsonLd={jsonLd}
+  breadcrumb="Blog"
 >
+  <p>
+    Passwords, API keys and personal details get shared every day through email and chat, where they stay long after
+    they’re needed. These posts explain how that happens, how one-time links and in-browser encryption avoid it, and
+    simple habits that keep credentials from piling up in old conversations.
+  </p>
   <ul class="list-none! pl-0! space-y-6">
     {
       posts.map((post) => (
@@ -29,4 +53,5 @@ const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 
       ))
     }
   </ul>
+  <RelatedGuides posts={false} />
 </Prose>

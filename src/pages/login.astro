@@ -5,7 +5,7 @@ import Auth from '../layouts/Auth.astro';
 export const prerender = false;
 ---
 
-<Auth title="Log in" description="Log in to your Vanishnote dashboard." heading="Welcome back" privatePage={false}>
+<Auth title="Log in" description="Log in to Vanishnote to send encrypted, self-destructing notes, see when they were opened, and manage your team." heading="Welcome back" privatePage={false}>
   <SsoButtons mode="login" />
   <form class="space-y-4" data-auth-form="login" novalidate>
     <div>

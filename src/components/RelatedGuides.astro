@@ -1,13 +1,26 @@
 ---
+/**
+ * Cross-links between the search-focused guides (lib/guides.ts) and, optionally, the latest blog
+ * posts, so every public page is reachable through more than one internal link.
+ */
+import { getCollection } from 'astro:content';
 import { GUIDES } from '../lib/guides';
 import { cleanPath } from '../lib/site';
 
+interface Props {
+  /** Also list the latest blog posts (off on blog posts, which list their own). */
+  posts?: boolean;
+}
+const { posts = true } = Astro.props;
 const current = cleanPath(Astro.url.pathname);
 const guides = GUIDES.filter((g) => g.href !== current);
+const latest = posts
+  ? (await getCollection('blog')).sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf()).slice(0, 3)
+  : [];
 ---
 
 <nav aria-labelledby="related-title" class="mt-12">
-  <h2 id="related-title" class="text-xl font-bold tracking-tight">Related</h2>
+  <h2 id="related-title" class="text-xl font-bold tracking-tight">Related guides</h2>
   <ul class="mt-4 grid gap-4 sm:grid-cols-2">
     {
       guides.map((g) => (
@@ -20,4 +33,21 @@ const guides = GUIDES.filter((g) => g.href !== current);
       ))
     }
   </ul>
+  {
+    latest.length > 0 && (
+      <>
+        <h2 class="mt-10 text-xl font-bold tracking-tight">From the blog</h2>
+        <ul class="mt-4 grid gap-4 sm:grid-cols-2">
+          {latest.map((p) => (
+            <li>
+              <a href={`/blog/${p.id}`} class="block h-full rounded-2xl border border-line p-5 hover:border-accent">
+                <span class="font-semibold text-accent">{p.data.title}</span>
+                <span class="mt-1 block text-sm text-muted">{p.data.description}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
 </nav>

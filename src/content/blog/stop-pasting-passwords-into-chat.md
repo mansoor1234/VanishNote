@@ -1,5 +1,6 @@
 ---
 title: Stop pasting passwords into chat. Here's what to do instead
+seoTitle: Stop pasting passwords into chat
 description: Why passwords sent over chat and email outlive their purpose, and a simple routine for sharing credentials that don't stick around.
 published: 2026-09-28
 ---

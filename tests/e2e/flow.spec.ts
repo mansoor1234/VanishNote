@@ -187,7 +187,12 @@ test('marketing pages are indexable; note pages are not', async ({ page, request
   const errors = trackConsoleErrors(page);
   for (const path of ['/', '/how-it-works', '/extension', '/security', '/faq', '/privacy', '/terms', '/blog']) {
     await page.goto(path);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /^index, follow\b/);
+    // Every public page has valid structured data: the home page says who runs the site, the
+    // others where they sit (breadcrumbs).
+    const ld = await page.locator('script[type="application/ld+json"]').allTextContents();
+    const types = ld.flatMap((t) => [JSON.parse(t)].flat().map((x: { '@type': string }) => x['@type']));
+    expect(types, path).toContain(path === '/' ? 'Organization' : 'BreadcrumbList');
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`${path === '/' ? '/' : path}$`));
     await expect(page.locator('h1')).toHaveCount(1);
   }

@@ -1,5 +1,7 @@
 ---
-title: What the # in a link does, and why secret notes rely on it
+# Quoted: an unquoted " # " starts a YAML comment and cut this title to "What the".
+title: 'What the # in a link does, and why secret notes rely on it'
+seoTitle: 'What the # in a link does for secret notes'
 description: URL fragments never leave your browser. Here's how that small detail lets a service deliver a secret it cannot read itself.
 published: 2026-10-06
 ---

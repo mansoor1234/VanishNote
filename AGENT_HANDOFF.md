@@ -359,6 +359,12 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
   before giving the user the folder or zips.
 - **SSO in tests:** `ssoDeps.fetch` (in `sso.ts`) is the injectable token-endpoint fetch.
 - `PRIVATE_PATH` drives both the noindex headers and the sitemap filter. Add new private routes there.
+- **SEO plumbing** (details in `docs/SEO_PLAN.md`): `Base.astro` adds Organization/WebSite (home)
+  or BreadcrumbList (other public pages) JSON-LD and picks the page's social card from
+  `src/lib/og-manifest.json`; regenerate cards with `node scripts/generate-og.mjs` after adding an
+  SEO page (add it to `PAGE_CARDS`) or a blog post. Quote YAML titles that contain `#`.
+- **Two Claude sessions push to GitHub.** Always `git fetch` and merge `origin/main` before
+  deploying, or the deploy drops the other session's pages.
 - Turnstile's script loads only on pages using `Auth.astro` with `turnstile` set.
 
 ## 12. Open items and decisions waiting on the user

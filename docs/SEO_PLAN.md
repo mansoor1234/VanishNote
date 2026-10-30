@@ -8,6 +8,22 @@ brand-new domain usually takes 3–6 months to rank for anything competitive.
 - Sitemap (`/sitemap-index.xml`), canonical URLs on every page, JSON-LD structured data.
 - Fast pages (Lighthouse 100).
 - Private pages kept out of search (`PRIVATE_PATH` in `src/lib/private-paths.ts`).
+- **Site-wide SEO review (2026-10-30):**
+  - Sitemap `<lastmod>` from each page's last git commit (`astro.config.mjs`); `/sitemap.xml` 301s
+    to the index (`public/_redirects`).
+  - Titles 45–60 characters with the search phrase first; blog posts can set a shorter `seoTitle`.
+    (Fixed: an unquoted `#` in YAML front matter had cut a blog title to "What the".)
+  - Structured data: Organization + WebSite on `/`, BreadcrumbList on every other public page
+    (`Base.astro`), Blog on `/blog`, richer BlogPosting (image, url, publisher logo).
+  - A social card per page (`public/og/*.png`, listed in `src/lib/og-manifest.json`, both made by
+    `node scripts/generate-og.mjs`; blog posts are added automatically). Add new SEO pages to
+    `PAGE_CARDS` in that script.
+  - Internal links: guides link to the latest blog posts and posts link to the guides
+    (`RelatedGuides`); the blog index has an intro and the guides.
+  - `robots` meta allows large image previews; `llms.txt` for AI search; `/.well-known/security.txt`;
+    `site.webmanifest` + `icon-512.png`.
+  - Not fixable in code: `/pricing/` and `/pricing.html` redirect with 307 (Cloudflare's default);
+    the canonical tag points search engines at the right URL.
 
 What's left: telling search engines the site exists, pages that match what people search for,
 and links from other sites.

@@ -1,0 +1,58 @@
+{
+  "/pricing": {
+    "image": "/og/pricing.png",
+    "alt": "Simple plans. The same encryption on all of them. (Vanishnote)"
+  },
+  "/security": {
+    "image": "/og/security.png",
+    "alt": "We can’t read your notes. Here’s exactly why. (Vanishnote)"
+  },
+  "/how-it-works": {
+    "image": "/og/how-it-works.png",
+    "alt": "How a note we can’t read gets to your recipient (Vanishnote)"
+  },
+  "/faq": {
+    "image": "/og/faq.png",
+    "alt": "Questions about self-destructing notes, answered (Vanishnote)"
+  },
+  "/extension": {
+    "image": "/og/extension.png",
+    "alt": "Send a secret from any page in two clicks. (Vanishnote)"
+  },
+  "/blog": {
+    "image": "/og/blog.png",
+    "alt": "Sharing secrets without leaving them lying around (Vanishnote)"
+  },
+  "/send-password-securely": {
+    "image": "/og/send-password-securely.png",
+    "alt": "Send a password that doesn’t stay in anyone’s inbox (Vanishnote)"
+  },
+  "/one-time-secret-link": {
+    "image": "/og/one-time-secret-link.png",
+    "alt": "A secret link that works once, then destroys itself (Vanishnote)"
+  },
+  "/share-api-keys": {
+    "image": "/og/share-api-keys.png",
+    "alt": "Share API keys and .env files without leaving them in Slack (Vanishnote)"
+  },
+  "/password-generator": {
+    "image": "/og/password-generator.png",
+    "alt": "A strong password, made on your device (Vanishnote)"
+  },
+  "/privnote-alternative": {
+    "image": "/og/privnote-alternative.png",
+    "alt": "Vanishnote vs Privnote (Vanishnote)"
+  },
+  "/onetimesecret-alternative": {
+    "image": "/og/onetimesecret-alternative.png",
+    "alt": "Vanishnote vs One-Time Secret (Vanishnote)"
+  },
+  "/blog/stop-pasting-passwords-into-chat": {
+    "image": "/og/blog-stop-pasting-passwords-into-chat.png",
+    "alt": "Stop pasting passwords into chat. Here's what to do instead (Vanishnote)"
+  },
+  "/blog/what-the-hash-in-a-link-does": {
+    "image": "/og/blog-what-the-hash-in-a-link-does.png",
+    "alt": "What the # in a link does, and why secret notes rely on it (Vanishnote)"
+  }
+}

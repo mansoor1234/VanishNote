@@ -1,0 +1,37 @@
+# Vanishnote
+
+> Vanishnote sends encrypted, self-destructing notes. A note is encrypted in the sender's browser (AES-256-GCM, Web Crypto) and the key travels only in the link's fragment (after the #), which browsers never send to servers, so Vanishnote stores data it cannot read. The note is deleted after it is read, or when it expires. Quick notes are free with no sign-up; accounts add attachments, activity history, information requests, teams, policies and an audit log.
+
+Key facts:
+
+- Encryption happens in the browser; the server never receives note text, keys or note passwords.
+- Opening a link does not burn the note (safe from chat link previews); pressing "Open and read note" does.
+- Optional password (PBKDF2-SHA256, 600,000 iterations), 1–10 views, expiry from 1 hour to 12 months depending on plan.
+- Plans: Free (one person, unlimited notes, 2 information requests a month), Standard ($5 per user a month), Business ($30 a month flat, unlimited users).
+- Browser extension for Chrome, Edge and Firefox.
+
+## Guides
+
+- [Send a password securely](https://vanishnote.net/send-password-securely): share a login with a one-time link instead of email or chat
+- [One-time secret links](https://vanishnote.net/one-time-secret-link): what a self-destructing link is and when to add a password
+- [Share API keys and .env files](https://vanishnote.net/share-api-keys): hand credentials to a teammate without leaving them in Slack or Git
+- [Password generator](https://vanishnote.net/password-generator): generate a strong password in the browser, then send it as a one-time link
+
+## Product
+
+- [How it works](https://vanishnote.net/how-it-works): the encryption and burn-after-reading flow, step by step
+- [Security model](https://vanishnote.net/security): what the servers can and cannot see, and the threats it doesn't cover
+- [Pricing](https://vanishnote.net/pricing): Free, Standard and Business plans
+- [Browser extension](https://vanishnote.net/extension): send a secret from any page
+- [FAQ](https://vanishnote.net/faq)
+
+## Comparisons
+
+- [Vanishnote vs Privnote](https://vanishnote.net/privnote-alternative)
+- [Vanishnote vs One-Time Secret](https://vanishnote.net/onetimesecret-alternative)
+
+## Optional
+
+- [Blog](https://vanishnote.net/blog): practical guides to sharing secrets safely
+- [Privacy policy](https://vanishnote.net/privacy)
+- [Terms of use](https://vanishnote.net/terms)

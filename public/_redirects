@@ -1,0 +1,2 @@
+# Some crawlers and tools look for /sitemap.xml; ours is a sitemap index.
+/sitemap.xml /sitemap-index.xml 301
