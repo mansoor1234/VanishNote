@@ -32,6 +32,13 @@
   --side-active: #2f3256;
   --side-accent: #c7d2fe;
   --side-warn: #fcd34d;
+  /* Notice banners (analytics consent): contrast with the page so they're noticed. */
+  --banner-bg: #2b2a7a;
+  --banner-ink: #ffffff;
+  --banner-muted: #d4d6f3;
+  --banner-line: #4c4bb0;
+  --banner-action: #ffffff;
+  --banner-action-ink: #2b2a7a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -57,6 +64,12 @@
     --side-bg: #13141f;
     --side-line: #262839;
     --side-active: #23264a;
+    --banner-bg: #2c2f63;
+    --banner-ink: #ffffff;
+    --banner-muted: #d4d6f3;
+    --banner-line: #5b62c9;
+    --banner-action: #c7d2fe;
+    --banner-action-ink: #11122a;
   }
 }
 
@@ -85,6 +98,12 @@
   --color-side-active: var(--side-active);
   --color-side-accent: var(--side-accent);
   --color-side-warn: var(--side-warn);
+  --color-banner-bg: var(--banner-bg);
+  --color-banner-ink: var(--banner-ink);
+  --color-banner-muted: var(--banner-muted);
+  --color-banner-line: var(--banner-line);
+  --color-banner-action: var(--banner-action);
+  --color-banner-action-ink: var(--banner-action-ink);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
 }
