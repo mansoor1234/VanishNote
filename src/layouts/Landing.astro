@@ -1,0 +1,54 @@
+---
+/**
+ * A page written for one search (docs/SEO_PLAN.md): the answer up top with the note form beside
+ * it, the detail below, then an FAQ and links to the related pages. The page holds a note form,
+ * so it must never be in ANALYTICS_PATHS.
+ */
+import CreateNote from '../components/CreateNote.astro';
+import FaqList from '../components/FaqList.astro';
+import RelatedGuides from '../components/RelatedGuides.astro';
+import { faqJsonLd, type Faq } from '../lib/schema';
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  eyebrow: string;
+  heading: string;
+  lead: string;
+  points: string[];
+  faqs: Faq[];
+  jsonLd?: Record<string, unknown>[];
+}
+
+const { title, description, eyebrow, heading, lead, points, faqs, jsonLd = [] } = Astro.props;
+---
+
+<Base title={title} description={description} jsonLd={[...jsonLd, faqJsonLd(faqs)]}>
+  <div class="container-page grid gap-6 py-6 sm:gap-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:items-start lg:gap-14">
+    <div>
+      <p class="text-sm font-semibold tracking-wide text-accent uppercase">{eyebrow}</p>
+      <h1 class="mt-2 text-3xl leading-tight font-extrabold tracking-tight text-balance sm:text-4xl">{heading}</h1>
+      <p class="mt-4 max-w-prose text-lg text-muted">{lead}</p>
+      <ul class="mt-6 space-y-2 text-sm">
+        {
+          points.map((point) => (
+            <li class="flex gap-2">
+              <span aria-hidden="true" class="text-success">✓</span> {point}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+    <CreateNote />
+  </div>
+
+  <article class="container-page pb-6">
+    <div class="prose-page">
+      <slot />
+      <h2>Questions</h2>
+      <FaqList faqs={faqs} />
+    </div>
+    <RelatedGuides />
+  </article>
+</Base>

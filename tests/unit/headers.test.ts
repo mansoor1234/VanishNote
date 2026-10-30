@@ -57,7 +57,7 @@ describe('security headers', () => {
     expect(CONTENT_SECURITY_POLICY).not.toContain('google');
     expect(ANALYTICS_CSP).not.toContain('unsafe-inline');
 
-    for (const path of ['/', '/n/abc', '/r/abc', '/d/abc', '/app', '/app/settings', '/login', '/signup', '/forgot', '/reset', '/verify', '/join', '/api/notes']) {
+    for (const path of ['/', '/n/abc', '/r/abc', '/d/abc', '/app', '/app/settings', '/login', '/signup', '/forgot', '/reset', '/verify', '/join', '/api/notes', '/password-generator', '/send-password-securely', '/one-time-secret-link', '/share-api-keys']) {
       expect(isAnalyticsPath(path), path).toBe(false);
     }
     for (const path of ['/pricing', '/faq', '/blog', '/blog/what-the-hash-in-a-link-does', '/privacy']) {

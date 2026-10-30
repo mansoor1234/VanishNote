@@ -68,3 +68,18 @@ export interface ErrorResponse {
   error: string;
   message: string;
 }
+
+/** A question and answer shown on a page (FaqList) and given to search engines (faqJsonLd). */
+export interface Faq {
+  q: string;
+  a: string;
+}
+
+/** schema.org FAQPage for a list of questions shown on the page. */
+export function faqJsonLd(faqs: Faq[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  };
+}

@@ -1,0 +1,74 @@
+---
+import Landing from '../layouts/Landing.astro';
+import { MAX_NOTE_BYTES } from '../lib/limits';
+import type { Faq } from '../lib/schema';
+
+const faqs: Faq[] = [
+  {
+    q: 'Can I send a whole .env file?',
+    a: `Yes. Paste it in: a note can hold up to ${MAX_NOTE_BYTES / 1024} KB of text, which fits most .env files. With a free account you can also attach the file itself, up to 5 MB, encrypted the same way.`,
+  },
+  {
+    q: 'Why not paste keys into Slack, Teams or a ticket?',
+    a: 'Because they stay there: in the history, in search, in exports, and in every integration that can read the channel. Secrets pasted in chat are one of the most common ways keys leak.',
+  },
+  {
+    q: 'Shouldn’t we use a secrets manager?',
+    a: 'Yes, for anything your systems use. A one-time link is for the hand-off: getting a key to a person who will put it into the secrets manager, a CI setting or their local .env. It’s the step where keys usually end up in chat.',
+  },
+  {
+    q: 'Can someone send a key to me?',
+    a: 'Yes. With an account, create an information request and send its link. Whatever they enter is encrypted in their browser to a key only you hold, so they don’t need an account and we can’t read it.',
+  },
+  {
+    q: 'Does a line break or a space get changed?',
+    a: 'No. The note is encrypted and decrypted exactly as written, including line breaks, spaces and quotes, and shown as plain text.',
+  },
+];
+---
+
+<Landing
+  title="Share API keys and .env files securely"
+  description="Send an API key, token or .env file to a teammate with a link that works once. Encrypted in your browser, never left in Slack or Git. Free."
+  eyebrow="For developers"
+  heading="Share API keys and .env files without leaving them in Slack."
+  lead="Paste the key or the whole .env below and send the one-time link. Your teammate copies it into place, and the only copy we ever held, which we couldn’t read, is deleted."
+  points={[
+    `Up to ${MAX_NOTE_BYTES / 1024} KB of text: enough for most .env files`,
+    'Line breaks, spaces and quotes kept exactly',
+    'Nothing left in chat history, tickets or Git',
+  ]}
+  faqs={faqs}
+>
+  <h2>Where keys leak</h2>
+  <p>
+    Rarely through clever attacks. Usually a key was pasted into a chat channel, a ticket, an email or a commit “just for
+    a minute”, and stayed there. Chat history is searchable, exported and readable by every bot in the channel. Git
+    history keeps a secret even after the line is deleted.
+  </p>
+
+  <h2>A safer hand-off</h2>
+  <ol>
+    <li>Paste the key, token or <code>.env</code> contents into the form. Your browser encrypts it.</li>
+    <li>Set it to destroy after one view and expire in 1 hour if it isn’t opened.</li>
+    <li>Send the link in the chat. Once your teammate has opened it, the link in the history is useless.</li>
+    <li>They put the value into your secrets manager, CI settings or their local <code>.env</code>.</li>
+  </ol>
+  <p>
+    If the link didn’t work for them, someone else opened it first. Rotate the key. That is also why one view is the
+    default: you find out.
+  </p>
+
+  <h2>Built so the key never reaches us</h2>
+  <p>
+    Encryption is AES-256-GCM with the Web Crypto API built into the browser. The key is in the link’s fragment, after the{' '}
+    <code>#</code>, which browsers don’t send to servers. We don’t log request bodies, and the pages where notes are
+    written and read load no third-party scripts. Details are in our <a href="/security">security model</a>.
+  </p>
+
+  <h2>Generating a new secret?</h2>
+  <p>
+    Our <a href="/password-generator">password generator</a> makes random strings in your browser, up to 64 characters,
+    and can drop the result straight into a note.
+  </p>
+</Landing>
