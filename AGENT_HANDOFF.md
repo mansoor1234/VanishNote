@@ -1,8 +1,10 @@
 # Vanishnote — handoff for the next agent
 
 Read this first, then `README.md` (setup, deploy, API, SSO and extension setup) and `SECURITY.md`
-(threat model). This file explains *why* the app is the way it is, the business rules, and the
-traps already found. State as of 2026-10-24, after commit `35c5499` (live on vanishnote.net).
+(threat model), then `docs/SEO_PLAN.md` (search plan and what's done). This file explains *why*
+the app is the way it is, the business rules, the traps already found, and everything the
+previous agent knew (§13–§15). State as of 2026-11-03, after commit `51dfd2e`; production
+(vanishnote.net) and GitHub `main` both match it.
 
 ---
 
@@ -29,6 +31,9 @@ Ways to use it:
   self-destructing Vanishnote". Quick notes without an account; with an API key, notes go to the
   dashboard. Built, **not yet published** to the stores. The site has an `/extension` page and an
   "Add to Chrome / Edge / Firefox" header button.
+- **SEO pages** written for specific searches: `/send-password-securely`, `/one-time-secret-link`,
+  `/share-api-keys`, `/password-generator` (each with a note form), and honest comparisons
+  `/privnote-alternative`, `/onetimesecret-alternative`. Two blog posts.
 
 ## 2. Non-negotiable invariants (do not break these)
 
@@ -123,6 +128,9 @@ src/lib/        Shared by browser and server
   private-paths.ts  PRIVATE_PATH: noindex/no-store headers and the sitemap filter
   analytics.ts    GA ID, ANALYTICS_PATHS (where opt-in analytics may run), consent key
   extension-store.ts  EXTENSION_STORES (store URLs, empty until published), browser detection
+  guides.ts       GUIDES: the SEO pages, cross-linked by RelatedGuides and listed in the footer
+  password.ts     password generator options (generateFromOptions), used by /password-generator
+  og-manifest.json  per-page social card paths + alt text (written by scripts/generate-og.mjs; read by Base.astro)
 src/server/     Worker-side, framework-agnostic handlers (tests call them directly)
   api.ts          anonymous notes: create / read / delete-with-token
   router.ts       route table for every other API endpoint (auth, SSO, account, team, public routes)
@@ -156,7 +164,11 @@ src/assets/logo-mark.svg   the logo mark: single source for header, favicons, ic
 src/layouts/    Base (site chrome or none), App (dashboard shell), Auth, Prose, Landing (SEO page + note form)
 src/middleware.ts  /app session guard; security headers for on-demand responses
 public/_headers    security headers for static pages (+ analytics CSP blocks); unit-tested against http.ts
-public/            favicon.svg/.ico/-48/-96, apple-touch-icon, icon-192, og images, extension-popup-*.png, sw.js
+public/_redirects  /sitemap.xml → /sitemap-index.xml (301)
+public/            favicon.svg/.ico/-48/-96, apple-touch-icon, icon-192, icon-512, og.png, og-note.png,
+                   og/*.png (per-page cards), extension-popup-*.png, sw.js, llms.txt, site.webmanifest,
+                   .well-known/security.txt (Expires 2027-10-30: renew before then)
+docs/SEO_PLAN.md   the agreed search plan, what's built, and what the owner still has to do
 extension/         src/ (client.ts crypto+API, popup, options, background, ext.ts), static/ (html, css, icons), version.json
 migrations/        0001 notes · 0002 accounts/teams/records/requests/usage/push · 0003 2FA/API key/consent
                    · 0004 team policies + audit_log · 0005 SSO (has_password, user_identities, sso_states)
@@ -294,14 +306,15 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
 
 ## 10. Testing
 
-- `npm test`: 126 unit and integration tests, including race tests for burn-after-read, quotas
+- `npm test`: 132 unit and integration tests, including race tests for burn-after-read, quotas
   and request responses; policy enforcement; audit log and CSV; shredding a member; SSO with a
   fake provider (CSRF, replay, nonce/aud/iss/exp, unverified email, pre-registration takeover,
   linking, required SSO); extension client and JSON + API key + extension-origin requests.
-- `npm run test:e2e`: 23 Playwright tests, including sign-up, 2FA across two browser contexts,
+- `npm run test:e2e`: 27 Playwright tests, including sign-up, 2FA across two browser contexts,
   attachment and request round trips, CSP-clean pages, the admin page and policy, Google
-  Analytics opt-in scope, the header extension button, and the **real extension** loaded into
-  Chromium (`channel: 'chromium'`, new headless) for quick and account notes.
+  Analytics opt-in scope, the header extension button, the SEO landing pages
+  (`landing.spec.ts`), structured data on every public page, and the **real extension** loaded
+  into Chromium (`channel: 'chromium'`, new headless) for quick and account notes.
 - The e2e `webServer` command builds the site, **builds the extension against
   `http://127.0.0.1:8788`**, migrates the local D1 and runs `wrangler dev` with
   `DEV_OUTBOX`, a local `APP_URL` and Turnstile's test key. Each test gets a random
@@ -366,6 +379,14 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
 - **Two Claude sessions push to GitHub.** Always `git fetch` and merge `origin/main` before
   deploying, or the deploy drops the other session's pages.
 - Turnstile's script loads only on pages using `Auth.astro` with `turnstile` set.
+- **YAML front matter:** an unquoted ` # ` starts a comment. It once cut a blog title to
+  "What the". Quote titles containing `#`; long headlines get a `seoTitle` (≤46 chars).
+- **Flaky local server:** e2e occasionally fails with wrangler's "Network connection lost" or the
+  sign-up "Something went wrong". Re-run before debugging.
+- **Base buttons are 44px tall** (`min-h-11` in the `btn` utility); the header overrides them to
+  36px with `min-h-9`.
+- **Notice banners** use the `--banner-*` colour tokens (deep indigo), not the white card, so they
+  stand out from the page in both themes.
 
 ## 12. Open items and decisions waiting on the user
 
@@ -383,7 +404,9 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
     `security@` (and possibly `notify@`) to the user's Gmail (verified working). Resend's sending
     records live on `send.vanishnote.net` and `resend._domainkey`; don't touch them.
   - Still to do by the user: submit `https://vanishnote.net/sitemap-index.xml` in Google Search
-    Console; Google may take days/weeks to show the new favicon.
+    Console and request indexing (URL Inspection, ~10 a day) for both blog posts first (one had a
+    broken title in Google), then the six SEO pages. Bing Webmaster Tools: import from Search
+    Console. Google may take days/weeks to show the new favicon and titles.
 - **SSO not switched on yet:** the user must create the Google OAuth client and the Microsoft
   Entra app (README "Single sign-on", including the `email` + `xms_edov` optional claims), then
   set `GOOGLE_CLIENT_ID` / `MICROSOFT_CLIENT_ID` in `wrangler.toml` and the two secrets.
@@ -433,8 +456,25 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
   A NoteShred-compatible layer (`/api/v2` paths, `Token token=` header, `{message,result}`
   envelope) was discussed. **Accepting plaintext content and passwords server-side was flagged
   as breaking the core promise. Don't do it without explicit user approval.**
-- **Billing (Stripe / Paddle / Lemon Squeezy) is not connected.** Plans are set by SQL. Check
-  which provider works with the user's bank in Pakistan before building.
+- **Billing is not connected.** Plans are set by SQL. Payments research (2026-10-28) found that
+  from Pakistan **Stripe, ExtensionPay, Dodo Payments and Stripe Managed Payments are closed**;
+  **Polar** (5% + 50¢, payouts to Pakistani banks via Stripe Connect since Feb 2026) and
+  **Paddle** (strict approval: public pricing, refund policy naming Paddle, no login walls) work;
+  Gumroad pays in PKR; Lemon Squeezy works now but its successor excludes Pakistan. Stripe Atlas
+  isn't worth it at this revenue. Recommended: Polar or Paddle checkout + webhooks that set
+  `teams.plan`. Do a $1 test payout before relying on any of them.
+- **Offered, awaiting go-ahead (money):** the research's #1 idea is to wire billing and add a
+  **custom domain + branding** upsell aimed at MSPs/small IT teams (competitors: Password Pusher
+  $19/$29/$49 a month, Onetime Secret $35); ~10 teams at $30 = $300/month. #2: sell the codebase
+  as an Astro + Cloudflare starter kit ($149–299; audit dependency licences, strip secrets/brand,
+  fresh history). #3: encrypted client-intake links for accountants/lawyers ($19–39/month). #4:
+  one paid extension after publishing the free one (new Chrome publishers get 2 slots). #5:
+  privacy-tools directory. #6: Upwork gig as a bridge. Cloudflare-for-SaaS custom hostname costs
+  at small volume were not verified. Full report (not in git, this machine only):
+  `D:\Shred\reports\Small app ideas for 100 to 500 USD.md`, notes in `D:\Shred\research_notes\`.
+- **Offered, awaiting go-ahead (privacy nudge):** note titles are **not encrypted** and the user
+  created titles like "My Gmail Pass" and "Google oauth creds". Offered: a stronger warning, or a
+  gentle inline warning when a title contains words like "password", "pass", "creds", "key".
 - **Not verified end to end against real services:** Resend delivery (a new user once had to be
   verified manually: check Resend's Emails/Domains pages), Turnstile with real keys, Web Push
   to a real device, and R2/cron in production. Inbound mail to `hello@`/`security@` is verified.
@@ -450,12 +490,57 @@ scripts/           generate-og.mjs (logo-derived icons, social cards, extension 
   `npx wrangler d1 execute vanishnote-db --remote --command "SELECT …"`.
 - **Local D1** has only test data (it was reset when `database_id` changed). The Cloudflare
   account is mansoorbahadur1234@gmail.com; `wrangler login` is done on this machine.
-- **No approval needed for file edits** in this repo; the user said not to ask. Finished features
-  have been deployed and pushed as part of the work; still confirm anything destructive
-  (deleting data, removing secrets) and anything sent to real people.
+- **Don't ask for permission** (user, 2026-10-13 and 2026-10-30): edit files, run tests, deploy
+  and push without asking, then report what changed. **Before every deploy: `git fetch` and
+  merge `origin/main`** (another session pushes too). Still stop before deleting user data,
+  changing secrets, or emailing real people.
+- **The user** writes short messages, often with screenshots, mostly about design polish and
+  features; they prefer the recommended option and want the work finished, tested, deployed and
+  pushed in one go. Git commits are authored as `nasir.raise`; the GitHub repo owner is
+  `mansoor1234` (Mansoor Bahadur). Explain results in plain language; tell them about any new
+  cost, store fee or manual dashboard step.
+- **Design feedback so far:** compact header buttons (36px), the extension button at the far
+  right of the header, the analytics banner must contrast with the page, password boxes must
+  stay level when a label is long, the logo is the gradient V with drifting squares (vector in
+  `src/assets/logo-mark.svg`, redrawn from the user's image).
 - **Commit in logical steps** and end commit messages with the attribution trailer
   (`Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`). Push to GitHub after committing.
 - **Write user-facing copy** in plain, calm English. Every security claim must be accurate (no
   "unhackable"). If you change what the server or extension sees, update `SECURITY.md`, the
   privacy page and the `/extension` page.
 - **Check visuals** with Playwright screenshots (light, dark, mobile) before calling UI done.
+
+## 14. The previous agent's saved memory (verbatim intent)
+
+These lived in the previous agent's private memory folder; they are copied here so nothing is lost.
+
+1. **No permission prompts.** Don't pause to ask the user for permission in this repo: make file
+   edits, run tests, deploy (`npm run deploy`) and push to GitHub, then report what changed.
+   Always `git fetch` first and merge `origin/main` before deploying: another Claude session also
+   pushes to GitHub (it shipped the SEO pages via PR #1 on 2026-10-24), and deploying an old local
+   tree removes its pages. Still stop and check before deleting user data, changing secrets, or
+   emailing real people.
+2. **Extension secret detection ("paste protection") is proposed, not approved** (2026-10-19).
+   Confirm scope with the user before building. Design and trust rules are in §12. Why it
+   matters: it catches the moment a secret is about to leak, which makes the extension useful
+   without being opened. Key rule: off by default, per-site optional host permissions, detection
+   stays on the device, and the privacy page, `/extension` page, `SECURITY.md` and store listings
+   must be updated (they currently say the extension can't read pages).
+
+## 15. What was built, in order (for context)
+
+| Date | Work |
+|---|---|
+| 2026-10-12–15 | Core app, accounts, plans, teams, requests, push, 2FA, API key, consent; deployed to vanishnote.net |
+| 2026-10-15–16 | SEO basics (canonical domain, sitemap filter), www/http redirects (Cloudflare dashboard), Email Routing, opt-in Google Analytics on information pages, PNG/ICO favicons, new logo |
+| 2026-10-16 | Free plan: unlimited notes, 2 requests a month |
+| 2026-10-17 | Team admin (policies, audit log, CSV, shred a member), Google/Microsoft SSO (off until configured), MV3 browser extension; privacy policy date bumped to 2026-10-17 |
+| 2026-10-19–23 | Password-box alignment fix, `/extension` page, "Add to Chrome/Edge/Firefox" header button |
+| 2026-10-24 | Compact header buttons; handoff rewritten. Another session (PR #1): SEO landing pages, comparison pages, password generator, `docs/SEO_PLAN.md` |
+| 2026-10-28 | Research: ways to earn US$100–500 (report on this machine, see §12) |
+| 2026-10-30 | Contrasting analytics banner; merged PR #1 into local work and redeployed (an earlier deploy had briefly dropped those pages) |
+| 2026-10-30–31 | Site-wide SEO review: fixed the "What the" title, clearer titles, sitemap lastmod from git, Organization/WebSite/Breadcrumb/Blog JSON-LD, a social card per page, blog cross-links, llms.txt, security.txt, web manifest |
+
+**Remote branches** `claude/landing-pages-password-gen-elge8w` (merged as PR #1) and
+`claude/project-handoff-overview-oq6bld` belong to the other session; `main` is the only branch
+that matters for deploys.
