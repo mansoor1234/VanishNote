@@ -270,4 +270,15 @@
   .prose-page strong {
     @apply font-semibold text-ink;
   }
+  /* Block display lets a wide table scroll sideways on phones instead of widening the page. */
+  .prose-page table {
+    @apply mb-6 block max-w-full overflow-x-auto border-collapse text-sm;
+  }
+  .prose-page th,
+  .prose-page td {
+    @apply border-b border-line px-3 py-2 text-left align-top;
+  }
+  .prose-page th {
+    @apply font-semibold whitespace-nowrap text-ink;
+  }
 }
