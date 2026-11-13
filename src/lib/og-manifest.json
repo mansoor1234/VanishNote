@@ -47,6 +47,14 @@
     "image": "/og/onetimesecret-alternative.png",
     "alt": "Vanishnote vs One-Time Secret (Vanishnote)"
   },
+  "/blog/accidentally-shared-an-api-key": {
+    "image": "/og/blog-accidentally-shared-an-api-key.png",
+    "alt": "Accidentally shared an API key? What to do next (Vanishnote)"
+  },
+  "/blog/clean-up-passwords-in-old-messages": {
+    "image": "/og/blog-clean-up-passwords-in-old-messages.png",
+    "alt": "How to clean up passwords left in old messages (Vanishnote)"
+  },
   "/blog/how-ai-is-changing-hacking": {
     "image": "/og/blog-how-ai-is-changing-hacking.png",
     "alt": "AI is changing hacking. Your old secrets are the easy target (Vanishnote)"
@@ -58,6 +66,26 @@
   "/blog/is-it-safe-to-send-passwords-over-whatsapp-or-slack": {
     "image": "/og/blog-is-it-safe-to-send-passwords-over-whatsapp-or-slack.png",
     "alt": "Is it safe to send passwords over WhatsApp, Slack or email? (Vanishnote)"
+  },
+  "/blog/one-time-link-expired-or-already-read": {
+    "image": "/og/blog-one-time-link-expired-or-already-read.png",
+    "alt": "Why a one-time note says it is unavailable (Vanishnote)"
+  },
+  "/blog/password-manager-or-one-time-link": {
+    "image": "/og/blog-password-manager-or-one-time-link.png",
+    "alt": "Password manager or one-time link: which should you use? (Vanishnote)"
+  },
+  "/blog/send-env-file-to-developer": {
+    "image": "/og/blog-send-env-file-to-developer.png",
+    "alt": "How to send a .env file to another developer safely (Vanishnote)"
+  },
+  "/blog/share-credentials-with-contractors": {
+    "image": "/og/blog-share-credentials-with-contractors.png",
+    "alt": "How to share credentials with a contractor (Vanishnote)"
+  },
+  "/blog/share-wifi-password-with-guests": {
+    "image": "/og/blog-share-wifi-password-with-guests.png",
+    "alt": "How to share your Wi-Fi password with guests (Vanishnote)"
   },
   "/blog/stop-pasting-passwords-into-chat": {
     "image": "/og/blog-stop-pasting-passwords-into-chat.png",

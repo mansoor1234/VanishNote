@@ -2,9 +2,12 @@
 import { getCollection } from 'astro:content';
 import RelatedGuides from '../../components/RelatedGuides.astro';
 import Prose from '../../layouts/Prose.astro';
+import { isPublished } from '../../lib/blog';
 
-const posts = (await getCollection('blog')).sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf());
-const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'UTC' });
+export const prerender = false;
+const now = Date.now();
+const posts = (await getCollection('blog')).filter((post) => isPublished(post, now)).sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf());
+const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'Asia/Karachi' });
 const site = Astro.site ?? new URL('https://vanishnote.net');
 
 const jsonLd = {

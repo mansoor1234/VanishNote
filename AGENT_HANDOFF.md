@@ -1,5 +1,12 @@
 # Vanishnote — handoff for the next agent
 
+**Update 2026-11-14:** Seven posts are scheduled for November 15–21 at 09:00 Asia/Karachi.
+See `docs/BLOG_SCHEDULE.md`. The blog index, article route, and `/sitemap-blog.xml` now render
+on demand and use `src/lib/blog.ts` to exclude future articles until their timestamps.
+Keep these routes dynamic: switching them back to static would break scheduled publication.
+No daily redeployment is needed. Static guide recommendations filter out future posts at build
+time. Blog analytics retain their existing opt-in scope through the middleware CSP.
+
 Read this first, then `README.md` (setup, deploy, API, SSO and extension setup) and `SECURITY.md`
 (threat model), then `docs/SEO_PLAN.md` (search plan and what's done). This file explains *why*
 the app is the way it is, the business rules, the traps already found, and everything the

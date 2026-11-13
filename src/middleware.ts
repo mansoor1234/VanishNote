@@ -2,6 +2,8 @@ import { defineMiddleware } from 'astro:middleware';
 import { getSessionUser } from './server/auth';
 import { requestCtx } from './server/deps';
 import { isPrivatePath, PRIVATE_HEADERS, SECURITY_HEADERS, TURNSTILE_CSP, TURNSTILE_PATHS } from './server/http';
+import { ANALYTICS_CSP } from './server/http';
+import { isAnalyticsPath } from './lib/analytics';
 
 /**
  * - /app/*: requires a session; sets locals.user.
@@ -27,6 +29,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const secured = new Response(response.body, response);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(name, value);
   if (TURNSTILE_PATHS.test(pathname)) secured.headers.set('Content-Security-Policy', TURNSTILE_CSP);
+  if (isAnalyticsPath(pathname)) secured.headers.set('Content-Security-Policy', ANALYTICS_CSP);
   if (isPrivatePath(pathname)) {
     for (const [name, value] of Object.entries(PRIVATE_HEADERS)) secured.headers.set(name, value);
   } else {

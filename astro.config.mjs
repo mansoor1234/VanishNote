@@ -54,6 +54,8 @@ export default defineConfig({
   integrations: [
     // Only indexable pages: listing a noindex page in the sitemap is a conflict search engines flag.
     sitemap({
+      customPages: [new URL('/blog', site).href],
+      customSitemaps: [new URL('/sitemap-blog.xml', site).href],
       filter: (page) => !PRIVATE_PATH.test(new URL(page).pathname),
       serialize: (item) => {
         const lastmod = lastModified(new URL(item.url).pathname);

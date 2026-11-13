@@ -2,7 +2,7 @@
 title: "How to send a password to a client safely"
 seoTitle: "How to send a password to a client safely"
 description: "A practical client handoff: choose limited access, share a password through an encrypted one-time link, and remove temporary access when the work is done."
-published: 2026-11-14
+published: 2026-11-14T00:00:00+05:00
 ---
 
 You've finished a client's website, set up their hosting, or created an account for their new project. Now you need to hand over the login without leaving a working password in an email thread for years.

@@ -6,6 +6,7 @@
 import { getCollection } from 'astro:content';
 import { GUIDES } from '../lib/guides';
 import { cleanPath } from '../lib/site';
+import { isPublished } from '../lib/blog';
 
 interface Props {
   /** Also list the latest blog posts (off on blog posts, which list their own). */
@@ -15,7 +16,7 @@ const { posts = true } = Astro.props;
 const current = cleanPath(Astro.url.pathname);
 const guides = GUIDES.filter((g) => g.href !== current);
 const latest = posts
-  ? (await getCollection('blog')).sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf()).slice(0, 3)
+  ? (await getCollection('blog')).filter((post) => isPublished(post)).sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf()).slice(0, 3)
   : [];
 ---
 

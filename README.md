@@ -17,6 +17,9 @@ and Playwright.
 
 See [SECURITY.md](SECURITY.md) for the threat model.
 
+Blog posts can be scheduled with an explicit `published` timestamp. Cloudflare makes them
+available at that time without another deployment; see [the blog schedule](docs/BLOG_SCHEDULE.md).
+
 ## Project layout
 
 ```

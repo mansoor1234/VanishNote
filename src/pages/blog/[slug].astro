@@ -1,23 +1,28 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection, getEntry, render } from 'astro:content';
 import RelatedGuides from '../../components/RelatedGuides.astro';
 import Prose from '../../layouts/Prose.astro';
 import ogManifest from '../../lib/og-manifest.json';
+import { isPublished } from '../../lib/blog';
 
-export async function getStaticPaths() {
-  const posts = await getCollection('blog');
-  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+export const prerender = false;
+const now = Date.now();
+const post = Astro.params.slug ? await getEntry('blog', Astro.params.slug) : undefined;
+if (!post || !isPublished(post, now)) {
+  return new Response('Not found', {
+    status: 404,
+    headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' },
+  });
 }
 
-const { post } = Astro.props;
 const { Content } = await render(post);
-const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'UTC' });
+const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 'Asia/Karachi' });
 const site = Astro.site ?? new URL('https://vanishnote.net');
 const path = `/blog/${post.id}`;
 const url = new URL(path, site).href;
 const image = new URL((ogManifest as Record<string, { image: string }>)[path]?.image ?? '/og.png', site).href;
 const others = (await getCollection('blog'))
-  .filter((p) => p.id !== post.id)
+  .filter((p) => p.id !== post.id && isPublished(p, now))
   .sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf())
   .slice(0, 3);
 
