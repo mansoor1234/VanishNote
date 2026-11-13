@@ -51,6 +51,10 @@
     "image": "/og/blog-how-ai-is-changing-hacking.png",
     "alt": "AI is changing hacking. Your old secrets are the easy target (Vanishnote)"
   },
+  "/blog/how-to-send-a-password-to-a-client": {
+    "image": "/og/blog-how-to-send-a-password-to-a-client.png",
+    "alt": "How to send a password to a client safely (Vanishnote)"
+  },
   "/blog/is-it-safe-to-send-passwords-over-whatsapp-or-slack": {
     "image": "/og/blog-is-it-safe-to-send-passwords-over-whatsapp-or-slack.png",
     "alt": "Is it safe to send passwords over WhatsApp, Slack or email? (Vanishnote)"
