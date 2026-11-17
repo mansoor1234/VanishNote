@@ -2,9 +2,14 @@
 # Quoted: an unquoted " # " starts a YAML comment and cut this title to "What the".
 title: 'What the # in a link does, and why secret notes rely on it'
 seoTitle: 'What the # in a link does for secret notes'
-description: URL fragments never leave your browser. Here's how that small detail lets a service deliver a secret it cannot read itself.
+description: "URL fragments stay out of page requests. Learn how a key after # protects a note, and why the full link still needs careful handling."
 published: 2026-10-06
+cover: /blog-images/what-the-hash-in-a-link-does.webp
+coverAlt: "An indigo ribbon splitting at a glass hash symbol toward a server and a browser-held key."
+updated: 2026-11-17T00:00:00+05:00
 ---
+
+> **At a glance:** The part after # is excluded from the page request, but remains part of the shareable link. Anyone with that full link may have the decryption key.
 
 Look closely at a Vanishnote link and you'll see two parts separated by a `#`:
 
@@ -27,7 +32,9 @@ That isn't a setting or a promise from us. It's how HTTP works in every major br
 3. Your browser builds the link: the ID goes in the path, and the key goes in the fragment.
 4. When your recipient opens the link, their browser asks the server for the encrypted note by ID, without sending the key, and decrypts it locally using the key from the fragment.
 
-The key travels from your browser to your recipient's browser inside the link itself. Our servers only ever see the locked box.
+When you copy and share a note link yourself, the recipient's browser uses that fragment to decrypt the content locally. The note-storage service receives ciphertext rather than the decryption key.
+
+There is a separate account feature for emailing password-protected note links. If you choose it, our server briefly handles the full link to build the email. The note's separate password must still be shared another way. That exception is why a URL fragment should not be described as something that can never leave a browser.
 
 ## What could still leak the fragment?
 
@@ -36,9 +43,10 @@ Fragments are private by default, but not magic. A few things deserve attention:
 - **Referrer headers.** When you click a link from a page, the browser may tell the next site where you came from. Modern browsers strip fragments from referrers, and Vanishnote also sets `Referrer-Policy: no-referrer`, so nothing is shared.
 - **Scripts on the page.** JavaScript running on a page can read the fragment. That's why Vanishnote's note pages load no third-party scripts: no analytics, no ads, no embedded widgets. Only our own code runs there.
 - **Wherever the link itself goes.** The fragment is part of the link, so anyone who sees the full link has the key. That's why a password, sent through a different channel, is a useful second lock.
+- **Browser history and extensions.** A full link can be retained in history, synchronised to another device, or seen by an extension with sufficient access. Avoid pasting it into public link checkers or support screenshots.
 
 ## Why not just send the key separately?
 
-You could, and a password-protected note effectively does that. But for everyday use, a single link that works on its own is far easier, and the fragment keeps the key away from the one party that never needs it: us.
+You can add a separate note password and give it to the recipient through another channel. The recipient then needs both the complete link and that password. For an ordinary copied link, the fragment makes the one-link workflow convenient while keeping the key out of the request to retrieve the note.
 
 The best way to protect data on a server is never to send it there.

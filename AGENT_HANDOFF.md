@@ -1,5 +1,11 @@
 # Vanishnote — handoff for the next agent
 
+**Update 2026-11-17:** All twelve blog posts have original illustrated covers and takeaways.
+Front matter now requires `cover` and `coverAlt`; local WebP assets and their smaller variants
+are in `public/blog-images/`. Article covers also supply social previews and structured-data
+images. See `docs/BLOG_ARTWORK.md` for prompts. Existing publication timestamps are preserved.
+Older posts received corrections about note availability, backup settings, and security claims.
+
 **Update 2026-11-14:** Seven posts are scheduled for November 15–21 at 09:00 Asia/Karachi.
 See `docs/BLOG_SCHEDULE.md`. The blog index, article route, and `/sitemap-blog.xml` now render
 on demand and use `src/lib/blog.ts` to exclude future articles until their timestamps.

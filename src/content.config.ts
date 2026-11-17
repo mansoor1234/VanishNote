@@ -9,6 +9,8 @@ const blog = defineCollection({
     /** Shorter <title> when the headline is long: search results cut titles at about 60 characters. */
     seoTitle: z.string().max(46).optional(),
     description: z.string().max(160),
+    cover: z.string().regex(/^\/blog-images\/[a-z0-9-]+\.webp$/),
+    coverAlt: z.string().min(15).max(250),
     published: z.coerce.date(),
     updated: z.coerce.date().optional(),
   }),

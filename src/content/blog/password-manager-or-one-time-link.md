@@ -3,7 +3,12 @@ title: "Password manager or one-time link: which should you use?"
 seoTitle: "Password manager or one-time link?"
 description: "Use a shared vault for ongoing access and a one-time link for a temporary handoff. Learn where each fits, and why neither replaces access control."
 published: 2026-11-15T09:00:00+05:00
+cover: /blog-images/password-manager-or-one-time-link.webp
+coverAlt: "An indigo vault beside a translucent chain link dissolving into lilac cubes."
+updated: 2026-11-17T00:00:00+05:00
 ---
+
+> **At a glance:** Use a managed vault for ongoing access and a one-read note for a temporary handoff. Neither can revoke a password someone has already saved.
 
 A colleague needs a login. Should you put it in a shared password vault, or send a link that disappears after reading?
 

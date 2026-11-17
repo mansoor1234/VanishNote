@@ -3,7 +3,11 @@ title: "Why a one-time note says it is unavailable"
 seoTitle: "Why your one-time note is unavailable"
 description: "A note may be expired, destroyed or already revealed. Learn why the error stays vague, what to check, and when to replace the credential before sharing again."
 published: 2026-11-19T09:00:00+05:00
+cover: /blog-images/one-time-link-expired-or-already-read.webp
+coverAlt: "A lilac glass hourglass beside a separated indigo link and a blank message card."
 ---
+
+> **At a glance:** Unavailable does not prove interception: the note may have expired, been destroyed, or used its final read. Check with the sender before replacing a credential.
 
 You're expecting a password, open the link, and see that the note doesn't exist or has already been read. It is frustrating, especially when you haven't seen its contents.
 

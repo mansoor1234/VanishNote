@@ -2,7 +2,6 @@
 import { getCollection, getEntry, render } from 'astro:content';
 import RelatedGuides from '../../components/RelatedGuides.astro';
 import Prose from '../../layouts/Prose.astro';
-import ogManifest from '../../lib/og-manifest.json';
 import { isPublished } from '../../lib/blog';
 
 export const prerender = false;
@@ -20,7 +19,7 @@ const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeZone: 
 const site = Astro.site ?? new URL('https://vanishnote.net');
 const path = `/blog/${post.id}`;
 const url = new URL(path, site).href;
-const image = new URL((ogManifest as Record<string, { image: string }>)[path]?.image ?? '/og.png', site).href;
+const image = new URL(post.data.cover, site).href;
 const others = (await getCollection('blog'))
   .filter((p) => p.id !== post.id && isPublished(p, now))
   .sort((a, b) => b.data.published.valueOf() - a.data.published.valueOf())
@@ -50,6 +49,8 @@ const jsonLd = {
   jsonLd={jsonLd}
   ogType="article"
   breadcrumb={post.data.seoTitle ?? post.data.title}
+  ogImage={post.data.cover}
+  ogImageAlt={post.data.coverAlt}
 >
   <p slot="before-heading" class="mb-3! text-sm">
     <a href="/blog">← All posts</a>
@@ -64,6 +65,18 @@ const jsonLd = {
       )
     }
   </p>
+  <img
+    src={post.data.cover}
+    srcset={`${post.data.cover.replace('.webp', '-640.webp')} 640w, ${post.data.cover} 1200w`}
+    sizes="(max-width: 800px) calc(100vw - 32px), 768px"
+    alt={post.data.coverAlt}
+    width="1200"
+    height="630"
+    loading="eager"
+    fetchpriority="high"
+    decoding="async"
+    class="mb-8 block h-auto w-full rounded-2xl border border-line"
+  />
   <Content />
   <aside class="mt-10 rounded-2xl bg-surface-muted p-6">
     <p class="mb-3! font-semibold">Need to send something sensitive right now?</p>

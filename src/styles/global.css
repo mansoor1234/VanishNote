@@ -270,6 +270,12 @@
   .prose-page strong {
     @apply font-semibold text-ink;
   }
+  .prose-page blockquote {
+    @apply mx-0 mb-6 rounded-r-xl border-l-2 border-accent bg-surface-muted px-5 py-4;
+  }
+  .prose-page blockquote p:last-child {
+    @apply mb-0;
+  }
   /* Block display lets a wide table scroll sideways on phones instead of widening the page. */
   .prose-page table {
     @apply mb-6 block max-w-full overflow-x-auto border-collapse text-sm;

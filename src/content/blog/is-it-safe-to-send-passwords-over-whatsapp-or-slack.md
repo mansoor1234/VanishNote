@@ -3,9 +3,14 @@ title: "Is it safe to send passwords over WhatsApp, Slack or email?"
 seoTitle: "Safe to send passwords over WhatsApp or Slack?"
 description: "Encryption isn't the real problem with sending passwords in chat. How long the message stays is. App-by-app answers, and a safer way to share a password."
 published: 2026-11-04
+cover: /blog-images/is-it-safe-to-send-passwords-over-whatsapp-or-slack.webp
+coverAlt: "Translucent chat bubbles and connected devices surrounding a coral key and a sealed message."
+updated: 2026-11-17T00:00:00+05:00
 ---
 
-Short answer: it's safer than shouting it across the office, and much less safe than it feels.
+> **At a glance:** Encryption protects delivery, but copies can persist on devices and in archives. Choose the handoff method for the access being granted, not only the chat app.
+
+For a sensitive login, use an account invitation, an approved shared vault, or an encrypted temporary handoff. Chat encryption helps protect delivery, but it doesn't decide how long a working password stays accessible afterwards.
 
 Most people ask the question with encryption in mind. "WhatsApp is end-to-end encrypted, so it's fine, right?" Encryption protects the message while it travels. The bigger risk is what happens afterwards, when the password sits in a chat for months or years, on several devices, in backups, and in an account somebody might one day get into.
 
@@ -21,7 +26,7 @@ It does nothing about:
 - **The recipient.** They can forward it, screenshot it, or paste it somewhere else.
 - **Search.** Type "password" into any chat app and see how quickly old ones turn up.
 
-Attackers rarely break encryption. They log in as you and search.
+An attacker who gains access to a readable message history may not need to break encryption at all.
 
 ## App by app
 
@@ -36,11 +41,11 @@ Attackers rarely break encryption. They log in as you and search.
 
 ### WhatsApp
 
-Messages are end-to-end encrypted, but your chat history isn't the only copy. Backups to Google Drive or iCloud are only end-to-end encrypted if you [turn on encrypted backups](https://faq.whatsapp.com/490592613091019), which is off by default. WhatsApp Web and other linked devices keep their own copies too. Disappearing messages help, but only if they were switched on before you sent the password, and the recipient can still copy it before it goes.
+Personal messages are end-to-end encrypted, but check your actual backup settings and linked devices. WhatsApp's [backup documentation](https://faq.whatsapp.com/490592613091019) distinguishes backup providers and explains the available end-to-end encryption settings; don't assume every backup has the same protection. Disappearing messages reduce retained history when enabled for the message, but the recipient can still save its contents.
 
 ### Slack
 
-Slack encrypts messages in transit and on its servers, but it doesn't offer end-to-end encryption, so the message is readable on Slack's side. On paid plans, Slack keeps everything forever unless the workspace sets a retention period, and depending on the plan, owners can export messages. On the [free plan](https://slack.com/help/articles/27204752526611), you can only see the last 90 days, but messages are kept for up to a year. Either way, the password is searchable by anyone who gets into the account.
+Slack messages are not end-to-end encrypted. Retention and export access depend on the workspace's plan, settings, and permissions. Slack's [retention documentation](https://slack.com/help/articles/203457187-Customize-data-retention-in-Slack) explains that free workspaces can retain data for 90 days or one year, while paid workspaces can configure retention. A visible-history limit is not the same thing as a promise that all copies have disappeared.
 
 ### Microsoft Teams
 
@@ -48,11 +53,11 @@ Teams chats are kept and searchable under your organisation's retention and comp
 
 ### Email
 
-Email is the worst of the common options. A copy lands in both mailboxes, often in backups and archives too, and it's forwarded, synced and searched for years. Email accounts are also among the most frequently taken over, because one mailbox resets the password for everything else.
+Ordinary email can leave copies in both mailboxes, archives, connected clients, and forwarded threads. Transport encryption does not usually make a message end-to-end encrypted. Check your organisation's approved sharing method rather than assuming that deleting a sent message removes the recipient's copy.
 
 ### Signal
 
-Signal is the best of the chat apps for this: end-to-end encrypted by default, with disappearing messages you can set per chat. If you must send a password in a message, a Signal chat with a short disappearing-message timer is a reasonable choice. The recipient still sees it in plain text and can copy it, and you won't know if anyone else did.
+Signal provides end-to-end encryption and optional disappearing-message timers. Its [own guidance](https://support.signal.org/hc/en-us/articles/360007320771-Set-and-manage-disappearing-messages) makes the limit clear: a recipient can photograph or otherwise save a disappearing message. Use the approved method for your workplace and treat temporary delivery separately from revoking the underlying credential.
 
 ## So is it ever OK?
 
@@ -65,10 +70,10 @@ The question to ask isn't "is this app encrypted?" but "where will this password
 1. **Send a one-time link instead of the password.** Put the password in a self-destructing note. The link opens once, the note is destroyed, and your chat history keeps only a dead link. With [Vanishnote](/send-password-securely), the note is encrypted in your browser, so we can't read it either.
 2. **Send the context separately.** "Admin login for the billing server" plus a password in the same message is a gift to whoever finds it. Send the link without a label, or mention what it's for elsewhere.
 3. **Use a second channel for important ones.** Protect the note with its own password and give that password over a call, or by text if the link went by email. Someone would then need access to two separate channels.
-4. **Watch for the warning.** If the recipient opens the link and is told it's already been read, someone else got there first. Change the password straight away.
+4. **Check an unavailable note.** It may have expired, been destroyed, or already been revealed. If you cannot account for what happened, change the credential before sending another note.
 5. **Change temporary passwords afterwards.** When a contractor or support agent no longer needs access, change the password. One that no longer works can't hurt you.
 
-If a whole team needs the same login every day, a one-time link isn't the right tool. Use a password manager's shared vault, so access can be granted and removed without passing the password around at all.
+If a whole team needs the same login every day, prefer separate accounts or an approved shared vault. Removing someone from a vault stops future retrieval through it; change the shared password too if they must lose access to the original service.
 
 ## Already sent one?
 

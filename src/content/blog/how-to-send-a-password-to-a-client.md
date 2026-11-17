@@ -3,7 +3,12 @@ title: "How to send a password to a client safely"
 seoTitle: "How to send a password to a client safely"
 description: "A practical client handoff: choose limited access, share a password through an encrypted one-time link, and remove temporary access when the work is done."
 published: 2026-11-14T00:00:00+05:00
+cover: /blog-images/how-to-send-a-password-to-a-client.webp
+coverAlt: "A sealed ivory envelope crossing a glass bridge between two indigo platforms."
+updated: 2026-11-17T00:00:00+05:00
 ---
+
+> **At a glance:** Prefer an account invitation. If a temporary password is necessary, share it privately and agree when the client will change it.
 
 You've finished a client's website, set up their hosting, or created an account for their new project. Now you need to hand over the login without leaving a working password in an email thread for years.
 

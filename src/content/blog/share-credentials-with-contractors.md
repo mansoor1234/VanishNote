@@ -3,7 +3,11 @@ title: "How to share credentials with a contractor"
 seoTitle: "Share credentials with a contractor safely"
 description: "Give contractors limited, temporary access. Use separate accounts where possible, send unavoidable shared secrets carefully, and close access when work ends."
 published: 2026-11-20T09:00:00+05:00
+cover: /blog-images/share-credentials-with-contractors.webp
+coverAlt: "A layered indigo access doorway with a mint keycard and a coral hourglass."
 ---
+
+> **At a glance:** Define the task, grant limited access, and assign a removal date. A private handoff does not replace revoking the underlying account or token.
 
 A contractor needs to fix a website, investigate a deployment, or review a report. Sending your main administrator password is quick, but it can leave them with more access than the job requires and no clear end date.
 

@@ -15,6 +15,7 @@ interface Props {
   ogType?: 'website' | 'article';
   /** Social card image path. Private pages only get one when given explicitly (it must reveal nothing). */
   ogImage?: string;
+  ogImageAlt?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   /** 'site': marketing header and footer. 'none': the page brings its own (dashboard, branded notes). */
   chrome?: 'site' | 'none';
@@ -34,7 +35,7 @@ const ogImagePath = Astro.props.ogImage ?? card?.image ?? (privatePage ? undefin
 const ogImage = ogImagePath ? new URL(ogImagePath, site).href : undefined;
 const ogImageAlt = privatePage
   ? 'A private note that opens once, sent with Vanishnote'
-  : (card?.alt ?? 'Vanishnote — encrypted notes that disappear after reading');
+  : (Astro.props.ogImageAlt ?? card?.alt ?? 'Vanishnote — encrypted notes that disappear after reading');
 const suffix = titleSuffix ?? 'Vanishnote';
 const fullTitle = title.includes(suffix) ? title : `${title} · ${suffix}`;
 

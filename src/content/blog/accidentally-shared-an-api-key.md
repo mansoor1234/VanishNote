@@ -3,7 +3,12 @@ title: "Accidentally shared an API key? What to do next"
 seoTitle: "Accidentally shared an API key?"
 description: "Posted a real API key in chat, a ticket or a repository? Revoke or rotate it, inspect its use, and replace dependent copies before cleaning up the message."
 published: 2026-11-16T09:00:00+05:00
+cover: /blog-images/accidentally-shared-an-api-key.webp
+coverAlt: "A broken coral API key beside a fresh mint key rising through a glass ring."
+updated: 2026-11-17T00:00:00+05:00
 ---
+
+> **At a glance:** Revoke or rotate the exposed key first, check its use, then update dependent applications and remove visible copies.
 
 You paste a debugging example into a ticket and notice the real API key after pressing send. Or you commit a configuration file that was supposed to contain placeholders.
 

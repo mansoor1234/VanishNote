@@ -3,7 +3,12 @@ title: "How to share your Wi-Fi password with guests"
 seoTitle: "Share your Wi-Fi password with guests"
 description: "Keep visitors on a guest network, share only the Wi-Fi credential they need, and understand why a disappearing note does not disconnect their devices."
 published: 2026-11-17T09:00:00+05:00
+cover: /blog-images/share-wifi-password-with-guests.webp
+coverAlt: "Indigo Wi-Fi bands above an ivory house and a separate mint guest pavilion."
+updated: 2026-11-17T00:00:00+05:00
 ---
+
+> **At a glance:** Use a guest network where available. Sharing its password privately does not disconnect devices after the visit; manage that through the router.
 
 Someone visits your office or home and asks for Wi-Fi. Giving them internet access shouldn't require handing over the same credential that your work devices use, or leaving a router administrator password in a chat.
 

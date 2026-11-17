@@ -11,7 +11,7 @@ test('blog routes and sitemap expose only published content', async ({ page, req
   });
   await page.goto('/blog');
   await expect(page.getByRole('heading', { name: 'Blog', exact: true })).toBeVisible();
-  await expect(page.locator('a[href="/blog/how-to-send-a-password-to-a-client"]')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'How to send a password to a client safely', exact: true })).toBeVisible();
   const listing = await page.content();
   const sitemap = await request.get('/sitemap-blog.xml');
   expect(sitemap.status()).toBe(200);
@@ -30,6 +30,12 @@ test('blog routes and sitemap expose only published content', async ({ page, req
       expect(xml).toContain(path);
       expect(await response.text()).toContain('BlogPosting');
       expect(response.headers()['content-security-policy']).toContain('googletagmanager');
+      await page.goto(path);
+      const cover = page.locator('article > div > div > img').first();
+      await expect(cover).toHaveAttribute('alt', /.+/);
+      await expect(cover).toHaveJSProperty('complete', true);
+      expect(await cover.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+      await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', new RegExp(`/blog-images/${post.slug}\\.webp$`));
     } else {
       expect(listing).not.toContain(path);
       expect(xml).not.toContain(path);

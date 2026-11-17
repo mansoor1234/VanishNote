@@ -3,7 +3,11 @@ title: "How to clean up passwords left in old messages"
 seoTitle: "Clean up passwords in old messages"
 description: "Clean up credentials in chats, email and tickets: inventory privately, replace working secrets, remove visible copies, and improve future handoffs."
 published: 2026-11-21T09:00:00+05:00
+cover: /blog-images/clean-up-passwords-in-old-messages.webp
+coverAlt: "Archived message cards passing through a lilac sorting arch into tidy cubes."
 ---
+
+> **At a glance:** Keep an inventory without copying secret values. Invalidate working credentials before removing the messages that contained them.
 
 Search a long-running project conversation for "password" and you may find credentials nobody remembers sending. Some are obsolete. Others may still unlock a database or a client account.
 

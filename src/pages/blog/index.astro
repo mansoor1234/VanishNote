@@ -39,19 +39,34 @@ const jsonLd = {
     they’re needed. These posts explain how that happens, how one-time links and in-browser encryption avoid it, and
     simple habits that keep credentials from piling up in old conversations.
   </p>
-  <ul class="list-none! pl-0! space-y-6">
+  <ul class="list-none! pl-0! grid gap-6 sm:grid-cols-2">
     {
-      posts.map((post) => (
-        <li class="mb-0! rounded-2xl border border-line p-6">
-          <h2 class="mt-0! mb-1! text-xl">
-            <a href={`/blog/${post.id}`} class="text-ink! no-underline! hover:text-accent!">
-              {post.data.title}
-            </a>
-          </h2>
-          <p class="mb-2! text-sm text-muted">
-            <time datetime={post.data.published.toISOString()}>{dateFormat.format(post.data.published)}</time>
-          </p>
-          <p class="mb-0!">{post.data.description}</p>
+      posts.map((post, index) => (
+        <li class="mb-0! overflow-hidden rounded-2xl border border-line transition-colors hover:border-accent">
+          <a href={`/blog/${post.id}`} tabindex="-1" aria-hidden="true" class="block">
+            <img
+              src={post.data.cover.replace('.webp', '-640.webp')}
+              srcset={`${post.data.cover.replace('.webp', '-640.webp')} 640w, ${post.data.cover} 1200w`}
+              sizes="(max-width: 639px) calc(100vw - 32px), 372px"
+              alt=""
+              width="1200"
+              height="630"
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              class="block h-auto w-full border-b border-line"
+            />
+          </a>
+          <div class="p-6">
+            <h2 class="mt-0! mb-1! text-xl">
+              <a href={`/blog/${post.id}`} class="text-ink! no-underline! hover:text-accent!">
+                {post.data.title}
+              </a>
+            </h2>
+            <p class="mb-2! text-sm text-muted">
+              <time datetime={post.data.published.toISOString()}>{dateFormat.format(post.data.published)}</time>
+            </p>
+            <p class="mb-0!">{post.data.description}</p>
+          </div>
         </li>
       ))
     }

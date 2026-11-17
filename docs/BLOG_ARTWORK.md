@@ -1,0 +1,61 @@
+# Blog artwork
+
+Created November 17, 2026 with the built-in imagegen tool. Twelve original illustrations,
+one per article. Optimised local assets live in `public/blog-images/`: each slug has a
+1200×630 WebP cover and a 640×336 WebP thumbnail. Full-resolution generated originals remain
+in the image tool's default generated-images directory on this machine.
+
+The Markdown front matter owns `cover` and `coverAlt`. Articles, blog cards, Open Graph,
+Twitter previews, and BlogPosting structured data use these fields. Publication timestamps
+are unchanged. Images are illustrations rather than screenshots or evidence of incidents.
+
+## Final prompt set
+
+### password-manager-or-one-time-link
+
+Use case: stylized-concept. Asset type: wide editorial blog cover, 1536x1024 landscape. Create an eye-catching premium 3D editorial illustration for an article about choosing a password manager or a one-time secret link. On a warm ivory studio background, a substantial sculptural indigo vault on the left faces a delicate translucent lilac chain link on the right dissolving into tiny floating cubes. A vivid coral circular accent, soft shadows, matte ceramic and frosted glass materials, elegant magazine art direction, strong clean silhouettes legible as a thumbnail. No lettering, numbers, text, logos, watermark, UI screenshot, people, or hacker clichés. Keep all important objects in the central two thirds for a 16:9 crop.
+
+### accidentally-shared-an-api-key
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A luminous coral-red key has fractured at its tip above a dark indigo plinth; beside it an intact mint-green replacement key rises through a circular frosted-glass ring. Communicate revoking an exposed key and replacing it, confident and practical, not alarming.
+
+### clean-up-passwords-in-old-messages
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A graceful curved stream of ivory message cards dotted with tiny indigo password bullets passes through a translucent lilac sorting arch; behind it fragments turn into neat small cubes, while one mint key sits in a secure tray. Communicate cleaning up years of digital clutter.
+
+### how-ai-is-changing-hacking
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A sculptural frosted-glass neural-network orb casts a sweeping warm coral beam across stacked archival message cards and a forgotten indigo key. The composition suggests machines searching old records for secrets. Sophisticated and thoughtful, no robot faces.
+
+### how-to-send-a-password-to-a-client
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: Two elegant separate indigo ceramic platforms connected by a single sweeping translucent lilac bridge; a small sealed ivory envelope with an embossed keyhole travels between them. Warm coral sunrise disk behind, mint accent. Communicate a careful client handoff.
+
+### is-it-safe-to-send-passwords-over-whatsapp-or-slack
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: Several translucent overlapping generic message bubbles hold a tiny luminous coral key, surrounded by orbiting device-like rounded rectangles. One indigo sealed message stands apart on an ivory pedestal. Communicate the lasting copies of passwords in chats. No actual app icons.
+
+### one-time-link-expired-or-already-read
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A large elegant frosted-glass hourglass with lilac sand dissolving into cubes sits beside one separated indigo chain link and a small blank ivory message card. A warm coral sun-like disk highlights the passing of time. Reflect unavailable and expired notes.
+
+### send-env-file-to-developer
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A sculptural ivory file folder opens to reveal neatly arranged mint and indigo keys, with one key traveling inside a translucent glass capsule toward another folder. Small decorative embossed equal-sign shapes only, no readable code or text. Communicate protected developer configuration.
+
+### share-credentials-with-contractors
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: An indigo ceramic access doorway with a removable mint keycard slot, a smaller translucent lilac gate inside, and a warm coral hourglass beside it. Architectural miniature, showing limited temporary access rather than unlimited keys.
+
+### share-wifi-password-with-guests
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A sculptural indigo Wi-Fi signal of three smooth curved bands floats over a friendly ivory house and a separate small mint guest pavilion, separated by a frosted glass garden divider. Warm coral disk and soft lilac shadows. Communicate a welcoming separate guest network.
+
+### stop-pasting-passwords-into-chat
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A beautiful oversized ivory speech bubble with embossed indigo password bullets unravels at one edge into lilac cubes; a vivid coral key is suspended safely inside a translucent sealed capsule beside it. A clean dramatic diagonal composition about secrets that should not remain in chat.
+
+### what-the-hash-in-a-link-does
+
+Use case: stylized-concept. Asset type: premium wide editorial blog cover, 1536x1024 landscape. Create a visually striking polished 3D editorial illustration for a privacy-focused software blog. Warm ivory studio backdrop, indigo blue and lilac frosted glass, matte ceramic materials, small coral and mint accents, soft long studio shadows, tactile material detail, carefully balanced gallery-quality composition, strong silhouettes readable as a thumbnail. Keep all main objects in the central two thirds so a 16:9 crop works. No lettering, readable text, logos, watermark, people, actual app icons, padlock spam, green terminal text, hooded hackers, or UI screenshots. Scene: A single sweeping indigo ribbon splits into two paths at a large sculptural frosted-lilac hash symbol: one side meets an ivory server tower, the other cradles a small mint key inside a translucent browser-like frame. Communicate separating the address from the local decryption key without a technical diagram.
+

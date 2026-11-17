@@ -24,8 +24,10 @@ index. Static guide pages keep the latest-post recommendations from their most r
 they exclude future posts, while the blog itself updates on schedule.
 
 To add another scheduled post, use an explicit timestamp, for example
-`published: 2026-11-22T09:00:00+05:00`, generate its card with `node scripts/generate-og.mjs`,
-and deploy once. To reschedule an unpublished post, change that timestamp and redeploy.
+`published: 2026-11-22T09:00:00+05:00`, provide its local `cover` and descriptive `coverAlt`
+fields, and deploy once. Covers live in `public/blog-images/` with 1200×630 and 640×336 WebP
+variants; see `docs/BLOG_ARTWORK.md` for the artwork and prompts. To reschedule an unpublished
+post, change its publication timestamp and redeploy.
 Preview images are public assets; scheduling controls the article content and discovery,
 not confidentiality of the image or title. Do not place private information in blog drafts.
 

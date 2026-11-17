@@ -3,7 +3,12 @@ title: Stop pasting passwords into chat. Here's what to do instead
 seoTitle: Stop pasting passwords into chat
 description: Why passwords sent over chat and email outlive their purpose, and a simple routine for sharing credentials that don't stick around.
 published: 2026-09-28
+cover: /blog-images/stop-pasting-passwords-into-chat.webp
+coverAlt: "A password message dissolving into lilac cubes beside a key sealed in a glass capsule."
+updated: 2026-11-17T00:00:00+05:00
 ---
+
+> **At a glance:** Send a temporary encrypted link instead of leaving the password in chat. Use a short expiry and change temporary credentials when access ends.
 
 Somebody needs the Wi-Fi password, the staging database login, or the code for the side door. The quickest move is to paste it into whatever chat window is already open. Done in five seconds.
 
@@ -19,13 +24,15 @@ A credential sent through a normal chat or email doesn't live in one place. It l
 - **Notification previews** on lock screens and smartwatches.
 - **Exports and integrations**: bots, connected apps, and the archive someone downloads when they leave the company.
 
-Each copy is another place an attacker can find it later. Most account takeovers don't involve clever cryptanalysis. Someone simply finds a credential where it was left.
+Each copy is another place an attacker might find it later. A well-encrypted message can still expose a working password if someone gains access to the device or account holding it.
 
 ## A better routine in four steps
 
 ### 1. Send the secret through something that forgets
 
-Use a one-time link that is destroyed after it's opened. The secret is readable exactly once, by the person who needs it. Your chat history keeps only a dead link.
+Use an encrypted note set to one read and a short expiry. In Vanishnote, loading the link shows a reveal page; pressing the reveal button consumes the read. After that, the stored note is destroyed and the conversation keeps a link that cannot retrieve it again.
+
+Anyone holding the complete unprotected link can attempt that reveal. A one-read setting limits retrieval; it does not identify the recipient or prevent them saving what they see.
 
 ### 2. Split the secret from its context
 
@@ -41,9 +48,9 @@ If a credential is shared with someone temporarily, such as a contractor, a supp
 
 ## What if the link was already opened?
 
-If your recipient opens the link and is told the note has already been read, take it seriously. Someone else got there first, whether a person, an over-eager security scanner, or someone with access to the conversation. Assume the secret is exposed and change it.
+An unavailable note may have expired, been destroyed by its sender, or used its final read. The error alone doesn't prove someone else opened it. Ordinary page-preview requests don't consume Vanishnote notes; a person or tool would need to perform the reveal action.
 
-That warning is the point of the exercise. A password pasted into chat can be read a thousand times and nobody ever knows. A self-destructing note tells you when something has gone wrong.
+Check with the sender. If a working credential was in the note and you cannot account for its disappearance, change or revoke that credential before sharing a replacement. The [FAQ](/faq) explains note expiry and reveal behaviour.
 
 ## The five-second version
 
